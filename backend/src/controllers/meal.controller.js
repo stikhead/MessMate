@@ -4,7 +4,7 @@ import { Transaction } from "../models/transactions.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
-
+import crypto from "crypto"
 
 const deadLineCalculate = async(bookingDate, mealType)=>{
     const deadline = new Date(bookingDate);
@@ -64,6 +64,7 @@ const bookMeal = asyncHandler(async(req, res)=>{
     }    
     const bookingDate = await calculateActualDate(day);
 
+    // TODO: change the booking logic (i.e: if cancelled token exist then update status to booked ) -> avoid unecessary filling of database
     const existingBooking = await MealToken.findOne({
         student: req.user?._id,
         date: bookingDate,
@@ -165,9 +166,37 @@ const getMyTokens = asyncHandler(async(req, res)=>{
 const verifyMeal = asyncHandler(async(req, res)=>{
     
 })
+const generateStaffQR = asyncHandler(async(req, res)=>{
+    
+    if(req.user.role === 'student'){
+        throw new ApiError(403, "Access denied");
+    }
 
+    const timeblock = Math.floor(Date.now()/30000);
+
+    const secret = process.env.QR_CODE_SECRET;
+
+    if(!secret){
+        throw new ApiError(500, "SERVER ERROR")
+    }
+
+    const qrPayload = crypto
+        .createHmac('sha256', secret)
+        .update(String(timeblock))
+        .digest('hex');
+
+    const validUntil = new Date(Date.now());
+    validUntil.setDate(validUntil+timeblock)
+    return res
+    .status(201)
+    .json(
+        new ApiResponse(201, {qrPayload, validUntil}, "New QR payload generated")
+    )
+
+
+})
 const getDailyHeadCount = asyncHandler(async(req, res)=>{
     
 })
 
-export {bookMeal, cancelMeal, verifyMeal, getDailyHeadCount, getMyTokens}
+export {bookMeal, cancelMeal, verifyMeal, getDailyHeadCount, getMyTokens, generateStaffQR}
