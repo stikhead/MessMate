@@ -5,6 +5,22 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
+
+const deadLineCalculate = async(bookingDate, mealType)=>{
+    const deadline = new Date(bookingDate);
+    
+    let cutOfFHour = 10; // lunch - 1pm
+    if(Number(mealType)===1) cutOfFHour = 6 // breakfast - 8am 
+    if(Number(mealType)===3) cutOfFHour = 17 // dinner - 8pm
+
+    deadline.setHours(cutOfFHour, 0, 0, 0)
+
+    const currentTime = new Date();
+    return currentTime > deadline
+
+}
+
+
 const calculateActualDate = async(targetDay)=>{
     let today = new Date();
 
@@ -51,13 +67,19 @@ const bookMeal = asyncHandler(async(req, res)=>{
     const existingBooking = await MealToken.findOne({
         student: req.user?._id,
         date: bookingDate,
-        mealType: mealType 
-
+        mealType: mealType,
+        status: 'BOOKED'
     })
 
+    
     if(existingBooking){
         throw new ApiError(409, "Already Booked")
     }
+
+    if(await deadLineCalculate(bookingDate, mealType)){
+        throw new ApiError(400, "Booking closed")
+    }
+
     if(req.user.currentBalance < itemPrice){
         throw new ApiError(402, `Insufficient balance. req: ${itemPrice} got: ${req.user.currentBalance}`)
     }
@@ -73,9 +95,9 @@ const bookMeal = asyncHandler(async(req, res)=>{
         student: req.user?._id,
         date: bookingDate,
         mealType: mealType,
-        status: 'booked',
+        status: 'BOOKED',
         cost: itemPrice
-    })    // generate the token here
+    })  
 
     const transactionLog = await Transaction.create({
         user: req.user?._id,
@@ -110,28 +132,30 @@ const cancelMeal = asyncHandler(async(req, res)=>{
         throw new ApiError(404, "Not found");
     }
 
-    const currentTime = new Date();
-    const isCancellationPossible = bookingDate - currentTime;
-
-    if(isCancellationPossible<6 * 60 * 60 * 1000){
-        throw new ApiError(400, "Cancellation window closed");
+    if(await deadLineCalculate(bookingDate, mealType)){
+        throw new ApiError(400, "cancellation window closed")
     }
 
-    req.user.currentBalance += getMeal.price;
+    const refundAmount = getMeal.cost;
+    req.user.currentBalance += refundAmount;
     await req.user.save({validateBeforeSave: false})
 
-    getMeal.status = 'cancelled';
+    getMeal.status = 'CANCELLED';
     await getMeal.save({validateBeforeSave: false});
     
+    await Transaction.create({
+        user: req.user._id,
+        amount: refundAmount, 
+        transactionType: "credit",
+        description: `Refund for Cancelled Meal (${bookingDate.toDateString()})`,
+        referenceId: getMeal._id
+    });
 
     return res
     .status(200)
     .json(
         new ApiResponse(200, {}, "Cancelled successfully")
     )
-    
-
-
 })
 
 const getMyTokens = asyncHandler(async(req, res)=>{

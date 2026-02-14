@@ -6,7 +6,7 @@ const router = Router();
 
 router.route("/book").post(verifyJWT, bookMeal);
 
-router.route("/cancel").post(cancelMeal);
+router.route("/cancel").post(verifyJWT, cancelMeal);
 
 router.route("/get-tokens").get(getMyTokens);
 
