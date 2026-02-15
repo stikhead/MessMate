@@ -5,6 +5,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import crypto from "crypto"
+import { calculateActualDate } from "../utils/DateConverter.js";
 
 const deadLineCalculate = async(bookingDate, mealType)=>{
     const deadline = new Date(bookingDate);
@@ -20,27 +21,6 @@ const deadLineCalculate = async(bookingDate, mealType)=>{
 
 }
 
-
-const calculateActualDate = async(targetDay)=>{
-    let today = new Date();
-
-    let currentDay = today.getDay();
-    if(currentDay===0) currentDay = 7; // converting sunday (0) to (7)
-
-    let daysToAdd = targetDay - currentDay;
-
-    if(daysToAdd<0) daysToAdd+=7;
-
-    const finalDate = new Date(today);
-
-    finalDate.setDate(today.getDate() + daysToAdd)
-    
-    finalDate.setHours(5, 30, 0, 0); // adding 5:30 to handle utc->ist
-
-    return finalDate;
-
-
-}
 
 const bookMeal = asyncHandler(async(req, res)=>{
     const {day, mealType} = req.body;
@@ -62,7 +42,7 @@ const bookMeal = asyncHandler(async(req, res)=>{
     if(!itemPrice){
         throw new ApiError(500, "Server Error")
     }    
-    const bookingDate = await calculateActualDate(day);
+    const bookingDate = await calculateActualDate(day, 2);
 
     // TODO: change the booking logic (i.e: if cancelled token exist then update status to booked ) -> avoid unecessary filling of database
     const existingBooking = await MealToken.findOne({
@@ -77,9 +57,9 @@ const bookMeal = asyncHandler(async(req, res)=>{
         throw new ApiError(409, "Already Booked")
     }
 
-    if(await deadLineCalculate(bookingDate, mealType)){
-        throw new ApiError(400, "Booking closed")
-    }
+    // if(await deadLineCalculate(bookingDate, mealType)){
+    //     throw new ApiError(400, "Booking closed")
+    // }
 
     if(req.user.currentBalance < itemPrice){
         throw new ApiError(402, `Insufficient balance. req: ${itemPrice} got: ${req.user.currentBalance}`)
@@ -121,7 +101,7 @@ const cancelMeal = asyncHandler(async(req, res)=>{
         throw new ApiError(400, "All fields are required");
     }
 
-    const bookingDate = await calculateActualDate(day);
+    const bookingDate = await calculateActualDate(day, 2);
     const getMeal = await MealToken.findOne({
         student: req.user?._id,
         date: bookingDate,
@@ -164,8 +144,53 @@ const getMyTokens = asyncHandler(async(req, res)=>{
 })
 
 const verifyMeal = asyncHandler(async(req, res)=>{
+    const {scannedPayload} = req.body;
     
+    const secret = process.env.QR_CODE_SECRET;
+
+    const timeBlock = Math.floor(Date.now() / 30000);
+
+    const validHashes = [
+        crypto.createHmac('sha256', secret).update(String(timeBlock)).digest('hex'),
+        crypto.createHmac('sha256', secret).update(String(timeBlock - 1)).digest('hex')
+    ];
+
+    if(!validHashes.includes(scannedPayload)){
+        throw new ApiError(400, "Invalid QR code")
+    }
+
+    const currentHour = new Date().getHours();
+    let mealType = 2;
+
+    if(currentHour<10) mealType = 1;
+    if(currentHour>=17) mealType = 3;
+
+    const dateToday = new Date();
+    dateToday.setHours(5, 30, 0, 0);
+
+    const token = await MealToken.findOne({
+        student: req.user?._id,
+        date: dateToday,
+        mealType: mealType,
+    })
+
+    if(token && token.status === 'REDEEMED'){
+        throw new ApiError(400, "Token already used || student already ate")
+    }
+    if(!token || token.status==='CANCELLED'){
+        throw new ApiError(404, "Not found")
+    }
+
+    token.status = 'REDEEMED';
+    await token.save({validateBeforeSave: false});
+
+    return res.
+    status(200).
+    json(
+        new ApiResponse(200, token, "Verification Successful! Enjoy your meal.")
+    )
 })
+
 const generateStaffQR = asyncHandler(async(req, res)=>{
     
     if(req.user.role === 'student'){
@@ -185,12 +210,10 @@ const generateStaffQR = asyncHandler(async(req, res)=>{
         .update(String(timeblock))
         .digest('hex');
 
-    const validUntil = new Date(Date.now());
-    validUntil.setDate(validUntil+timeblock)
     return res
     .status(201)
     .json(
-        new ApiResponse(201, {qrPayload, validUntil}, "New QR payload generated")
+        new ApiResponse(201, {qrPayload}, "New QR payload generated")
     )
 
 

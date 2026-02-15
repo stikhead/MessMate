@@ -28,8 +28,9 @@ const menuSchema = new mongoose.Schema({
 
 }, {
     toJSON: true,
-    toObject: true
-}, {timestamps: true})
+    toObject: true,
+    timestamps: true
+})
 
 menuSchema.virtual('dayName').get(function() {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

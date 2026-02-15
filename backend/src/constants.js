@@ -1,1 +1,9 @@
+import "dotenv/config"
+import Razorpay from "razorpay";
+
 export const {DB_NAME} = "mess_management";
+
+// export const {razorpayInstance} = new Razorpay({
+//     key_id: process.env.RAZORPAY_KEY_ID,
+//     key_secret: process.env.RAZORPAY_KEY_SECRET
+// })
