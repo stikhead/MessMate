@@ -39,7 +39,7 @@ mealTokenSchema.virtual('mealTypeName').get(function() {
     return meals[this.mealType];
 });
 
-mealTokenSchema.index({ student: 1, date: 1, mealType: 1}, { unique: true });
+mealTokenSchema.index({ student: 1, date: 1, mealType: 1, status: 1}, { unique: true });
 
 mealTokenSchema.pre('save', async function(){
     if(this.isNew){

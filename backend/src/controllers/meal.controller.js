@@ -44,22 +44,23 @@ const bookMeal = asyncHandler(async(req, res)=>{
     }    
     const bookingDate = await calculateActualDate(day, 2);
 
-    // TODO: change the booking logic (i.e: if cancelled token exist then update status to booked ) -> avoid unecessary filling of database
     const existingBooking = await MealToken.findOne({
         student: req.user?._id,
         date: bookingDate,
-        mealType: mealType,
-        status: 'BOOKED'
+        mealType: mealType
     })
 
     
     if(existingBooking){
-        throw new ApiError(409, "Already Booked")
+        if(existingBooking.status === 'BOOKED'){
+            throw new ApiError(409, "Already Booked")
+        }
+    
     }
 
-    // if(await deadLineCalculate(bookingDate, mealType)){
-    //     throw new ApiError(400, "Booking closed")
-    // }
+    if(await deadLineCalculate(bookingDate, mealType)){
+        throw new ApiError(400, "Booking closed")
+    }
 
     if(req.user.currentBalance < itemPrice){
         throw new ApiError(402, `Insufficient balance. req: ${itemPrice} got: ${req.user.currentBalance}`)
@@ -71,14 +72,21 @@ const bookMeal = asyncHandler(async(req, res)=>{
     if(!isUpdated){
         throw new ApiError(500, "Some error occuered while deducting the balance", isUpdated)
     }
-
-    const createMealToken = await MealToken.create({
-        student: req.user?._id,
-        date: bookingDate,
-        mealType: mealType,
-        status: 'BOOKED',
-        cost: itemPrice
-    })  
+    let createMealToken;
+    if(existingBooking && existingBooking.status === 'CANCELLED'){
+        existingBooking.status = 'BOOKED';
+        await existingBooking.save({validateBeforeSave: false});
+        createMealToken = existingBooking
+    }
+    else {
+        createMealToken = await MealToken.create({
+            student: req.user?._id,
+            date: bookingDate,
+            mealType: mealType,
+            status: 'BOOKED',
+            cost: itemPrice
+        })  
+    }
 
     const transactionLog = await Transaction.create({
         user: req.user?._id,
@@ -91,7 +99,7 @@ const bookMeal = asyncHandler(async(req, res)=>{
     return res
     .status(201)
     .json(
-        new ApiResponse( 201, createMealToken, "Meal booked"))
+        new ApiResponse( 201, {createMealToken, transactionLog}, "Meal booked"))
 })
 
 const cancelMeal = asyncHandler(async(req, res)=>{
@@ -108,6 +116,7 @@ const cancelMeal = asyncHandler(async(req, res)=>{
         mealType: mealType ,
         status: "BOOKED"
     })
+    
 
     if(!getMeal){
         throw new ApiError(404, "Not found");
@@ -218,8 +227,46 @@ const generateStaffQR = asyncHandler(async(req, res)=>{
 
 
 })
+
+
 const getDailyHeadCount = asyncHandler(async(req, res)=>{
-    
+    const {date} = req.params;
+
+    let queryDate = date ? new Date(date) : new Date();
+
+    queryDate.setHours(5, 30, 0, 0);
+
+    const stats = await MealToken.aggregate([
+        {
+            $match: {
+                date: queryDate,
+                status: { $in: ['BOOKED', 'REDEEMED']}
+            }
+        },
+
+        {
+            $group: {
+                _id: "$mealType",
+                count: {$sum: 1},
+                revenue: {$sum: "$cost"}
+            }
+        },
+
+        {
+            $sort: { _id: 1 }
+        }
+    ]);
+
+    const formattedStats = stats.map((stat) => ({
+        meal: stat._id === 1 ? "Breakfast" : stat._id === 2 ? "Lunch" : "Dinner",
+        count: stat.count,
+        revenue: stat.revenue
+    }));
+
+
+    return res.status(200).json(
+        new ApiResponse(200, formattedStats, `Headcount for ${queryDate.toDateString()}`)
+    );
 })
 
 export {bookMeal, cancelMeal, verifyMeal, getDailyHeadCount, getMyTokens, generateStaffQR}
