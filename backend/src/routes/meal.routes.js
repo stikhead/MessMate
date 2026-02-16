@@ -8,7 +8,7 @@ router.route("/book").post(verifyJWT, bookMeal);
 
 router.route("/cancel").post(verifyJWT, cancelMeal);
 
-router.route("/get-tokens").get(verifyJWT, getMyTokens);
+router.route("/get-token").get(verifyJWT, getMyTokens);
 
 router.route("/verify").post(verifyJWT, verifyMeal);
 

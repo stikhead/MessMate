@@ -17,7 +17,7 @@ const newFeedback = asyncHandler(async(req, res)=>{
     }
 
     if(!mealType || !day){
-        throw new ApiError(400, "All fields are required")
+        throw new ApiError(400, "fields are required")
     }
     const bookDate = await calculateActualDate(day, 1);
 
@@ -27,9 +27,11 @@ const newFeedback = asyncHandler(async(req, res)=>{
         date: bookDate,
         status: 'REDEEMED'
     })
+
+    console.log({category, description, day, mealType})
     
     if(!fetchMealToken){
-        throw new ApiError(404, 'Not found')
+        throw new ApiError(404, 'User didnt ate this meal')
     }
     const existingFeedback = await Feedback.findOne({
         user: req.user?._id,
@@ -97,6 +99,21 @@ const respondFeedback = asyncHandler(async(req, res)=>{
 
 
 const getFeedback = asyncHandler(async(req, res)=>{
+    if(!req.user?._id){
+        throw new ApiError(401, "Unauthorized");
+    }
+
+    const feedbacks = await Feedback.find({user: req.user?._id}).sort({createdAt: -1})
+
+    if(!feedbacks){
+        throw new ApiError(404, "Not found");
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, feedbacks, "SUCCESS")
+    )
 
 })
 

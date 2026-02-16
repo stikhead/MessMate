@@ -48,25 +48,27 @@ const addMenu = asyncHandler(async(req, res)=>{
 })
 
 const getMenuByDate = asyncHandler(async(req, res)=>{
-    const {day, mealType} = req.query;
 
-    if(!day) {
+    console.log(`[BACKEND HIT] Fetching menu for day: ${req.query.day}`)
+    const {day, mealType} = req.query;
+    const dayNumber = Number(day);
+    const mealTypeNumber = Number(mealType)
+    if(!dayNumber) {
         throw new ApiError(400, "All fields are required");
     }
 
 
     const filter = {
-        day: day
+        day: dayNumber
     }
-    if(mealType){
-        filter.mealType = mealType.toLowerCase();
+    if(mealTypeNumber){
+        filter.mealType = mealTypeNumber;
     }
 
     const getMenuItem = await Menu.find(
        filter
     )
 
-    console.log(getMenuItem)
     if(!getMenuItem || getMenuItem.length===0){
         throw new ApiError(404, `Menu doesnt exist for ${day}`)
     }
@@ -80,7 +82,13 @@ const getMenuByDate = asyncHandler(async(req, res)=>{
 
 
 const getWeeklyMenu = asyncHandler(async(req, res)=>{
+    const {day} = req.query;
+    if(!day){
+        throw new ApiError(400, "All fields are required");
+    }
+    const dayNumber = Number(day);
     const getWeeklyMenu = await Menu.find({
+        day: dayNumber
     }).sort({ 
         day: 1, 
         mealType: 1 
