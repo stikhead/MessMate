@@ -6,6 +6,9 @@ import { ApiError } from "../utils/ApiError.js";
 import crypto from "crypto";
 import { User } from "../models/users.models.js";
 import { Wallet } from "../models/wallet.models.js";
+import { WalletTransaction } from "../models/walletTransaction.models.js"
+
+
 var razorpayInstance = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET
@@ -13,7 +16,7 @@ var razorpayInstance = new Razorpay({
 const createOrder = asyncHandler(async(req, res)=>{
     const {amount} = req.body;
    const options = {
-        amount: Math.round(amount * 100), 
+        amount: Math.round(amount*100), 
         currency: "INR",
         receipt: `receipt_${Date.now()}` 
     };
@@ -23,7 +26,7 @@ const createOrder = asyncHandler(async(req, res)=>{
         const newTrans = await Wallet.create({
             user: req.user._id,
             order_id: order.id,
-            amount: order.amount,
+            amount: amount,
         })
         console.log(newTrans)
         return res.status(200).json(
@@ -69,15 +72,16 @@ console.log(generateSignature)
     const rechargeAmount = Number(orderToken.amount);
     user.currentBalance += rechargeAmount;
     await user.save({ validateBeforeSave: false });
-
-    // await Transaction.create({
-    //     user: user._id,
-    //     amount: rechargeAmount,
-    //     transactionType: "credit", // Money In
-    //     description: `Wallet Recharge (Razorpay)`,
-    //     referenceId: razorpay_payment_id, // Save the Payment ID for tracking
-    //     status: "SUCCESS"
-    // });
+    const date = new Date(Date.now());
+    await WalletTransaction.create({
+        user: user._id,
+        amount: rechargeAmount,
+        transactionType: "credit", // Money In
+        description: `Wallet Recharge (Razorpay)`,
+        referenceId: razorpay_payment_id, // Save the Payment ID for tracking
+        status: "SUCCESS",
+        date: date
+    });
 
     return res.status(200).json(
         new ApiResponse(200, { 
@@ -88,11 +92,35 @@ console.log(generateSignature)
 })
 
 const getWalletHistory = asyncHandler(async(req, res)=>{
+    if(!req.user?._id){
+        throw new ApiError(400, "Unauthorized")
+    }
+
+    const getHistory = await WalletTransaction.find({user: req.user?._id}).sort({date: -1});
+
+    if(!getHistory){
+        throw new ApiError(404, "Not found")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, getHistory, "Success")
+    )
 
 })
 
 const getBalance = asyncHandler(async(req, res)=>{
+    const bal = await User.findById(req.user._id)
+    if(!bal){
+        throw new ApiError(404, "Not found")
+    }
 
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, bal.currentBalance, "SUCCESS")
+    )
 })
 
 export {createOrder, verifyPayment, getBalance, getWalletHistory}

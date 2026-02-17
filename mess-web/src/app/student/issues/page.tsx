@@ -1,22 +1,55 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useState } from "react";
 import useSWR, { mutate } from "swr";
 import API from "@/lib/api";
 import Navbar from "@/components/student/Navbar";
 import Toast from "@/components/student/Toast"; // <--- Import Toast
-import { 
-  Droplets, Utensils, Scale, Clock, 
-  CheckCircle2, Loader2, Calendar, Coffee 
-} from "lucide-react";
+import { Droplets, Utensils, Scale, Clock, CheckCircle2, Loader2, Calendar, Coffee } from "lucide-react";
 import { AxiosError } from "axios";
+import { useUser } from "@/hooks/useUser";
 
-// --- TYPES ---
+
+function CategoryCard({ label, icon, selected, onClick }: CategoryCardProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all h-24 ${selected
+          ? "bg-blue-50 border-blue-500 shadow-sm"
+          : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+        }`}
+    >
+      <div className={`mb-2 ${selected ? "text-blue-600" : "text-gray-400"}`}>
+        <div className="h-6 w-6">{icon}</div>
+      </div>
+      <span className={`text-xs font-bold ${selected ? "text-blue-700" : "text-gray-600"}`}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "RESOLVED") {
+    return (
+      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-bold border border-green-200 uppercase tracking-wide">
+        <CheckCircle2 className="h-3 w-3" /> Resolved
+      </span>
+    );
+  }
+  if (status === "SUBMITTED") {
+    return (
+      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 text-[10px] font-bold border border-yellow-200 uppercase tracking-wide">
+        <Loader2 className="h-3 w-3 animate-spin" /> In Progress
+      </span>
+    );
+  }
+}
 interface Complaint {
   _id: string;
   category: string;
-  day?: number;      
-  mealType?: number; 
+  day?: number;
+  mealType?: number;
   description: string;
   status: "Pending" | "In Progress" | "Resolved";
   response?: string;
@@ -31,12 +64,12 @@ interface CategoryCardProps {
 }
 
 interface ToastState {
-    show: boolean;
-    message: string;
-    type: "success" | "error";
+  show: boolean;
+  message: string;
+  type: "success" | "error";
 }
 
-// Fetcher for SWR
+
 const fetcher = (url: string) =>
   API.get(url).then((res) => {
     const data = Array.isArray(res.data.data)
@@ -53,7 +86,7 @@ const dayMap: Record<string, number> = {
   "Monday": 1,
   "Tuesday": 2,
   "Wednesday": 3,
-  "Thursday": 4, 
+  "Thursday": 4,
   "Friday": 5,
   "Saturday": 6,
   "Sunday": 7
@@ -70,41 +103,25 @@ const getMealName = (num: number) => MEALS[num - 1] || "Unknown";
 
 
 export default function ComplaintPage() {
-
+  const { user, loading: userLoading} = useUser();
   const [selectedCategory, setSelectedCategory] = useState<string>("HYGIENE");
-  const todayIndex = new Date().getDay(); 
-  const defaultDay = todayIndex === 0 ? "Sunday" : DAYS[todayIndex - 1]; 
-
-  const [selectedDay, setSelectedDay] = useState<string>(defaultDay); 
   const [selectedMeal, setSelectedMeal] = useState<string>("Lunch");
-
+  
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [user, setUser] = useState(null);
-  const [userLoading, setUserLoading] = useState(true);
-  
-  
-  
-
   const [toast, setToast] = useState<ToastState | null>(null);
-
-
+  
+  const todayIndex = new Date().getDay();
+  const defaultDay = todayIndex === 0 ? "Sunday" : DAYS[todayIndex - 1];
+  const [selectedDay, setSelectedDay] = useState<string>(defaultDay);
+  
   const { data: complaints, isLoading } = useSWR(
     "/feedback/get",
     fetcher, {
-      revalidateOnFocus: false, 
-      dedupingInterval: 60000, 
-      keepPreviousData: true, 
+    revalidateOnFocus: false,
+    dedupingInterval: 60000,
+    keepPreviousData: true,
   });
-
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setUserLoading(false);
-  }, []);
 
   const triggerToast = (message: string, type: "success" | "error") => {
     setToast({ show: true, message, type });
@@ -121,24 +138,29 @@ export default function ComplaintPage() {
       const dayInt = dayMap[selectedDay];
       const mealTypeInt = mealMap[selectedMeal];
 
-      await API.post("/feedback/new", {
+      const feedbackres = await API.post("/feedback/new", {
         category: selectedCategory,
-        day: dayInt,        
-        mealType: mealTypeInt, 
+        day: dayInt,
+        mealType: mealTypeInt,
         description: description,
-      });
-      
+      }).catch(() => null);
+
       setDescription("");
       mutate("/feedback/get");
-      triggerToast("Complaint submitted successfully!", "success");
-      
+      if (feedbackres) {
+        triggerToast("Complaint submitted successfully!", "success");
+      }
+      else {
+        triggerToast("user", "error");
+      }
+
     } catch (error: unknown) {
       console.error("Submit Error:", error);
-      
+
 
       const axiosError = error as AxiosError<{ message: string }>;
       const errorMessage = axiosError.response?.data?.message || "Failed to submit complaint.";
-      
+
       triggerToast(errorMessage, "error");
 
     } finally {
@@ -162,9 +184,9 @@ export default function ComplaintPage() {
       <Navbar user={user} />
 
       <main className="mx-auto max-w-4xl px-4 sm:px-6 py-8 space-y-8">
-      
+
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          
+
           <h2 className="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wider">1. Select Category</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <CategoryCard label="Hygiene" icon={<Droplets />} selected={selectedCategory === "HYGIENE"} onClick={() => setSelectedCategory("HYGIENE")} />
@@ -173,14 +195,14 @@ export default function ComplaintPage() {
             <CategoryCard label="Delay" icon={<Clock />} selected={selectedCategory === "DELAY"} onClick={() => setSelectedCategory("DELAY")} />
           </div>
 
-  
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            
+
             <div>
               <label className="text-sm font-bold text-gray-900 mb-2 block uppercase tracking-wider">2. Which Day?</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <select 
+                <select
                   value={selectedDay}
                   onChange={(e) => setSelectedDay(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none appearance-none transition-all text-gray-700 font-medium cursor-pointer hover:bg-gray-100"
@@ -197,11 +219,11 @@ export default function ComplaintPage() {
                   <button
                     key={meal}
                     onClick={() => setSelectedMeal(meal)}
-                    className={`py-3 rounded-xl text-sm font-medium transition-all border ${
-                      selectedMeal === meal
+                    className={`py-3 rounded-xl text-sm font-medium transition-all border ${selectedMeal === meal
+
                         ? "bg-blue-600 text-white border-blue-600 shadow-md transform scale-[1.02]"
                         : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                    }`}
+                      }`}
                   >
                     {meal}
                   </button>
@@ -230,59 +252,59 @@ export default function ComplaintPage() {
         </div>
 
         <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-900">Recent Complaints</h2>
-            
-            {complaints && complaints.length > 0 ? (
-              complaints.map((item: Complaint) => (
-                <div key={item._id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs font-bold border border-gray-200 uppercase">
-                        {item.category}
-                      </span>
-                      
-                      {item.day && (
-                        <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 text-xs font-medium border border-blue-100 flex items-center gap-1">
-                          <Calendar className="h-3 w-3"/> {getDayName(item.day)}
-                        </span>
-                      )}
-                      {item.mealType && (
-                        <span className="px-2 py-0.5 rounded-md bg-orange-50 text-orange-600 text-xs font-medium border border-orange-100 flex items-center gap-1">
-                          <Coffee className="h-3 w-3"/> {getMealName(item.mealType)}
-                        </span>
-                      )}
-                    </div>
-                    <StatusBadge status={item.status} />
-                  </div>
+          <h2 className="text-lg font-bold text-gray-900">Recent Complaints</h2>
 
-                  <p className="text-gray-800 text-sm mb-3 leading-relaxed">{item.description}</p>
-                  
-                  {item.response && (
-                    <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 border border-blue-100 mt-3 flex items-start gap-2">
-                      <div className="font-bold shrink-0">Admin:</div>
-                      <div>{item.response}</div>
-                    </div>
-                  )}
+          {complaints && complaints.length > 0 ? (
+            complaints.map((item: Complaint) => (
+              <div key={item._id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs font-bold border border-gray-200 uppercase">
+                      {item.category}
+                    </span>
+
+                    {item.day && (
+                      <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 text-xs font-medium border border-blue-100 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> {getDayName(item.day)}
+                      </span>
+                    )}
+                    {item.mealType && (
+                      <span className="px-2 py-0.5 rounded-md bg-orange-50 text-orange-600 text-xs font-medium border border-orange-100 flex items-center gap-1">
+                        <Coffee className="h-3 w-3" /> {getMealName(item.mealType)}
+                      </span>
+                    )}
+                  </div>
+                  <StatusBadge status={item.status} />
                 </div>
-              ))
-            ) : (
-               <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300">
-                 <div className="h-12 w-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                   <CheckCircle2 className="h-6 w-6" />
-                 </div>
-                 <h3 className="text-gray-900 font-medium">No complaints yet</h3>
-                 <p className="text-gray-500 text-sm">Everything seems to be going well!</p>
-               </div>
-            )}
+
+                <p className="text-gray-800 text-sm mb-3 leading-relaxed">{item.description}</p>
+
+                {item.response && (
+                  <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 border border-blue-100 mt-3 flex items-start gap-2">
+                    <div className="font-bold shrink-0">Admin:</div>
+                    <div>{item.response}</div>
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300">
+              <div className="h-12 w-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <CheckCircle2 className="h-6 w-6" />
+              </div>
+              <h3 className="text-gray-900 font-medium">No complaints yet</h3>
+              <p className="text-gray-500 text-sm">Everything seems to be going well!</p>
+            </div>
+          )}
         </div>
 
       </main>
 
       {toast && (
-        <Toast 
-            message={toast.message} 
-            type={toast.type} 
-            onClose={() => setToast(null)} 
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
 
@@ -290,40 +312,3 @@ export default function ComplaintPage() {
   );
 }
 
-
-function CategoryCard({ label, icon, selected, onClick }: CategoryCardProps) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all h-24 ${
-        selected
-          ? "bg-blue-50 border-blue-500 shadow-sm"
-          : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-      }`}
-    >
-      <div className={`mb-2 ${selected ? "text-blue-600" : "text-gray-400"}`}>
-        <div className="h-6 w-6">{icon}</div>
-      </div>
-      <span className={`text-xs font-bold ${selected ? "text-blue-700" : "text-gray-600"}`}>
-        {label}
-      </span>
-    </button>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  if (status === "RESOLVED") {
-    return (
-      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-bold border border-green-200 uppercase tracking-wide">
-        <CheckCircle2 className="h-3 w-3" /> Resolved
-      </span>
-    );
-  }
-  if (status === "SUBMITTED") {
-    return (
-      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 text-[10px] font-bold border border-yellow-200 uppercase tracking-wide">
-        <Loader2 className="h-3 w-3 animate-spin" /> In Progress
-      </span>
-    );
-  }
-}

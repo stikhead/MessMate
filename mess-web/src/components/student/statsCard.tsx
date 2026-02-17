@@ -1,5 +1,5 @@
 import React from "react";
-type ColorTheme = "blue" | "green" | "orange" | "purple" | "red";
+type ColorTheme = "blue" | "green" | "orange" | "purple" | "red" | "gray";
 
 interface StatsCardProps {
   title: string;
@@ -11,11 +11,12 @@ interface StatsCardProps {
 }
 
 const colorMap: Record<ColorTheme, { bg: string; text: string }> = {
-  blue:   { bg: "bg-blue-50",   text: "text-blue-600" },
-  green:  { bg: "bg-green-50",  text: "text-green-600" },
-  orange: { bg: "bg-orange-50", text: "text-orange-600" },
-  purple: { bg: "bg-purple-50", text: "text-purple-600" },
-  red:    { bg: "bg-red-50",    text: "text-red-600" },
+  blue:   { bg: "bg-blue-100",   text: "text-blue-600" },
+  green:  { bg: "bg-green-100",  text: "text-green-600" },
+  orange: { bg: "bg-orange-100", text: "text-orange-600" },
+  purple: { bg: "bg-purple-100", text: "text-purple-600" },
+  red:    { bg: "bg-red-100",    text: "text-red-600" },
+  gray:   { bg: "bg-gray-100",   text: "text-gray-600"}
 };
 
 export default function StatsCard({ title, value, subValue, icon, color = "blue", className = "" }: StatsCardProps) {
@@ -28,7 +29,7 @@ export default function StatsCard({ title, value, subValue, icon, color = "blue"
       {/* Header: Title + Icon */}
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${theme.bg}`}>
+        <div className={`flex h-10 w-10 items-center ${theme.text} justify-center rounded-lg ${theme.bg}`}>
           {/* We clone the icon to force the correct text color onto it */}
           {React.cloneElement(icon as React.ReactElement)}
         </div>

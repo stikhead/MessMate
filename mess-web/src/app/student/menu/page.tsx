@@ -1,28 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import useSWR from "swr";
 import API from "@/lib/api";
 import Navbar from "@/components/student/Navbar";
-import {
-  Coffee,
-  Sun,
-  Moon,
-  UtensilsCrossed,
-  AlertCircle,
-  Leaf,
-} from "lucide-react";
+import { Coffee, Sun, Moon, UtensilsCrossed, AlertCircle, Leaf } from "lucide-react";
+import { useUser } from "@/hooks/useUser";
 
 interface MenuItem {
   mealType: number;
   items: string;
 }
 
-interface UserProfile {
-  fullName?: string;
-  rollNumber?: string;
-  currentBalance?: number;
-}
+
 
 const DAYS = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ];
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -39,26 +29,8 @@ const fetcher = (url: string) =>
 
 export default function WeeklyMenuPage() {
   const [selectedDayIndex, setSelectedDayIndex] = useState(new Date().getDay());
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
- 
-   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-      } catch (error) {
-        console.error("Failed to fetch dashboard data", error);
-      }  finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
+  const { user, loading: userLoading } = useUser()
+  
   const dayName = selectedDayIndex;
 
   const { data: menu, error, isLoading  } = useSWR<MenuItem[]>(
@@ -115,7 +87,7 @@ export default function WeeklyMenuPage() {
   };
 
   
-  if (loading) {
+  if (isLoading || userLoading) {
       return (
           <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -178,7 +150,6 @@ export default function WeeklyMenuPage() {
           )}
         </div>
 
-        {/* MEAL CARDS STACK */}
         <div className="space-y-4 sm:space-y-5">
           {isLoading && !menu ? (
             [1, 2, 3].map((i) => (
@@ -285,7 +256,8 @@ export default function WeeklyMenuPage() {
           )}
         </div>
 
-        {/* DIETARY INFO FOOTER */}
+
+
         <div className="mt-8 rounded-2xl bg-linear-to-br from-green-50 to-emerald-50 p-5 border border-green-200 shadow-sm">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-100">

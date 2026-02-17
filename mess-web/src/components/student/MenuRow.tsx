@@ -5,14 +5,15 @@ interface MenuRowProps {
   time: string;
   items: string;
   active: boolean;
-  timeLeft: {
+  timeLeft?: {
      hours: string,
     minutes: string,
     seconds: string,
   };
+  activeMeal: string
 }
 
-export default function MenuRow({ icon, iconBg, title, time, items, active, timeLeft }: MenuRowProps) {
+export default function MenuRow({ icon, iconBg, title, time, items, active, activeMeal }: MenuRowProps) {
   const foodList = items
     ? items
         .split(",")
@@ -47,14 +48,13 @@ export default function MenuRow({ icon, iconBg, title, time, items, active, time
             </h4>
             {active && (
               <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
-                 {(timeLeft.hours === '00') ? 'Serving' : 'Next'}
+                 {activeMeal}
               </span>
             )}
           </div>
           <span className="text-xs text-gray-500 hidden sm:block">{time}</span>
         </div>
 
-        {/* Food Items Displayed as Tags/Pills */}
         <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {foodList.length > 0 ? (
             foodList.map((food: string, index: number) => (

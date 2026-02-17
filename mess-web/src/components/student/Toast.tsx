@@ -8,11 +8,10 @@ interface ToastProps {
 }
 
 export default function Toast({ message, type, onClose }: ToastProps) {
-  // Auto-dismiss after 3 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
-    }, 3000);
+    }, 6000);
 
     return () => clearTimeout(timer);
   }, [onClose]);
@@ -23,17 +22,14 @@ export default function Toast({ message, type, onClose }: ToastProps) {
         ? "bg-green-50 border-green-200 text-green-800" 
         : "bg-red-50 border-red-200 text-red-800"
     }`}>
-      {/* Icon */}
       {type === "success" ? (
         <CheckCircle2 className="h-5 w-5 text-green-600" />
       ) : (
         <XCircle className="h-5 w-5 text-red-600" />
       )}
 
-      {/* Message */}
       <p className="text-sm font-semibold pr-2">{message}</p>
 
-      {/* Close Button */}
       <button 
         onClick={onClose}
         className={`p-1 rounded-full hover:bg-black/5 transition-colors ${

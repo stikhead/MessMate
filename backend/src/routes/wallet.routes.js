@@ -8,9 +8,9 @@ router.route("/create-order").post(verifyJWT, createOrder);
 
 router.route("/verify").post(verifyJWT, verifyPayment);
 
-router.route("/history").get(getWalletHistory);
+router.route("/history").get(verifyJWT, getWalletHistory);
 
-router.route("/balance").get(getBalance);
+router.route("/balance").get(verifyJWT, getBalance);
 
 
 export default router
