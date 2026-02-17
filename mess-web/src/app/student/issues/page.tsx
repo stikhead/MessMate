@@ -15,8 +15,8 @@ function CategoryCard({ label, icon, selected, onClick }: CategoryCardProps) {
     <button
       onClick={onClick}
       className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all h-24 ${selected
-          ? "bg-blue-50 border-blue-500 shadow-sm"
-          : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+        ? "bg-blue-50 border-blue-500 shadow-sm"
+        : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50"
         }`}
     >
       <div className={`mb-2 ${selected ? "text-blue-600" : "text-gray-400"}`}>
@@ -103,18 +103,18 @@ const getMealName = (num: number) => MEALS[num - 1] || "Unknown";
 
 
 export default function ComplaintPage() {
-  const { user, loading: userLoading} = useUser();
+  const { user, loading: userLoading } = useUser();
   const [selectedCategory, setSelectedCategory] = useState<string>("HYGIENE");
   const [selectedMeal, setSelectedMeal] = useState<string>("Lunch");
-  
+
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
-  
+
   const todayIndex = new Date().getDay();
   const defaultDay = todayIndex === 0 ? "Sunday" : DAYS[todayIndex - 1];
   const [selectedDay, setSelectedDay] = useState<string>(defaultDay);
-  
+
   const { data: complaints, isLoading } = useSWR(
     "/feedback/get",
     fetcher, {
@@ -170,10 +170,13 @@ export default function ComplaintPage() {
 
   if (userLoading || (!complaints && isLoading)) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading complaints...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} />
+        <div className="flex h-screen items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+            <p className="mt-4 text-gray-600">Loading Wallet...</p>
+          </div>
         </div>
       </div>
     );
@@ -221,8 +224,8 @@ export default function ComplaintPage() {
                     onClick={() => setSelectedMeal(meal)}
                     className={`py-3 rounded-xl text-sm font-medium transition-all border ${selectedMeal === meal
 
-                        ? "bg-blue-600 text-white border-blue-600 shadow-md transform scale-[1.02]"
-                        : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                      ? "bg-blue-600 text-white border-blue-600 shadow-md transform scale-[1.02]"
+                      : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                       }`}
                   >
                     {meal}

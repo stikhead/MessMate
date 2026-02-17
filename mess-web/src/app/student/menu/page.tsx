@@ -14,7 +14,7 @@ interface MenuItem {
 
 
 
-const DAYS = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ];
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const fetcher = (url: string) =>
@@ -30,16 +30,16 @@ const fetcher = (url: string) =>
 export default function WeeklyMenuPage() {
   const [selectedDayIndex, setSelectedDayIndex] = useState(new Date().getDay());
   const { user, loading: userLoading } = useUser()
-  
+
   const dayName = selectedDayIndex;
 
-  const { data: menu, error, isLoading  } = useSWR<MenuItem[]>(
+  const { data: menu, error, isLoading } = useSWR<MenuItem[]>(
     `/menu/getMenu?day=${dayName}`,
     fetcher, {
-        revalidateOnFocus: false, 
-        dedupingInterval: 60000, 
-        keepPreviousData: true, 
-    });
+    revalidateOnFocus: false,
+    dedupingInterval: 6000000,
+    keepPreviousData: true,
+  });
 
   const getMealInfo = (type: number) => {
     switch (type) {
@@ -86,17 +86,20 @@ export default function WeeklyMenuPage() {
     }
   };
 
-  
+
   if (isLoading || userLoading) {
-      return (
-          <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading weekly menu...</p>
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} />
+        <div className="flex h-screen items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+            <p className="mt-4 text-gray-600">Loading Wallet...</p>
+          </div>
         </div>
       </div>
     );
-}
+  }
 
   const isToday = selectedDayIndex === new Date().getDay();
   return (
@@ -105,7 +108,7 @@ export default function WeeklyMenuPage() {
       <Navbar user={user} />
 
       <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 pb-24">
-       
+
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
             Weekly Menu
@@ -123,11 +126,10 @@ export default function WeeklyMenuPage() {
                 <button
                   key={day}
                   onClick={() => setSelectedDayIndex(index)}
-                  className={`relative shrink-0 min-w-17 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                    isSelected
+                  className={`relative shrink-0 min-w-17 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${isSelected
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105"
                       : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
-                  }`}
+                    }`}
                 >
                   {day}
                   {isDayToday && !isSelected && (
@@ -210,7 +212,7 @@ export default function WeeklyMenuPage() {
                           </p>
                         </div>
 
-                       
+
                         <ul className="space-y-2">
                           {meal.items
                             .split(",")
@@ -241,7 +243,7 @@ export default function WeeklyMenuPage() {
               );
             })
           ) : (
-          
+
             <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gray-100 mb-4">
                 <UtensilsCrossed className="h-8 w-8 text-gray-400" />

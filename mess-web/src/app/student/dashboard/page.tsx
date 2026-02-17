@@ -5,10 +5,10 @@ import API from "@/lib/api";
 import { UtensilsCrossed, CalendarDays, Clock, Coffee, Sun, Moon, TrendingUp, Calendar, Wallet, LucideAlarmCheck } from "lucide-react";
 
 import Navbar from "@/components/student/Navbar";
-import StatsCard from "@/components/student/statsCard"; 
+import StatsCard from "@/components/student/statsCard";
 import MenuRow from "@/components/student/MenuRow";
 import Toast from "@/components/student/Toast";
-import { useUser } from "@/hooks/useUser"; 
+import { useUser } from "@/hooks/useUser";
 
 const MEAL_SCHEDULE = [
   { type: 1, start: 8, end: 9, status: "SERVING" },
@@ -38,91 +38,91 @@ interface MenuItem {
   mealType: number;
   items: string;
   price: number;
-}  
+}
 
 interface MealToken {
   tokenId: string;
   mealType: number;
   status: string;
   cost: number;
-}  
+}
 
 interface UserStats {
   mealsThisWeek: number;
   totalMeals: number;
   attendanceRate: number;
-}  
+}
 
 interface ToastState {
   show: boolean;
   message: string;
   type: "success" | "error";
-}  
+}
 
 
 export default function StudentDashboard() {
-  
-  const {user, loading: userLoading } = useUser(); 
+
+  const { user, loading: userLoading } = useUser();
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [mealToken, setMealToken] = useState<MealToken | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
-  
-  const [timeLeft, setTimeLeft] = useState({ 
-    hours: "00", 
-    minutes: "00", 
-    seconds: "00" 
+
+  const [timeLeft, setTimeLeft] = useState({
+    hours: "-1",
+    minutes: "00",
+    seconds: "00"
   });
-  
-  const [stats] = useState<UserStats>({ 
+
+  const [stats] = useState<UserStats>({
     mealsThisWeek: 18,
     totalMeals: 21,
-    attendanceRate: 86 
+    attendanceRate: 86
   });
-  
+
   const [activeMeal, setActiveMeal] = useState<{
     meal: MenuItem | null;
     status: "SERVING" | "UPCOMING" | "CLOSED";
     targetTime: Date | null;
   }>({ meal: null, status: "CLOSED", targetTime: null });
-  
+
   const calculateMealState = useCallback((menuItems: MenuItem[]) => {
     const now = new Date();
     const currentHour = now.getHours();
-    
+
     const findItem = (type: number) => menuItems.find(m => m.mealType === type) || null;
 
     const slot = MEAL_SCHEDULE.find(s => currentHour >= s.start && currentHour < s.end);
 
     if (slot) {
 
-        const target = new Date();
-        target.setHours(slot.end, 0, 0, 0);
-        
-        return { 
-            meal: findItem(slot.type), 
-            status: slot.status, 
-            targetTime: target 
-        };
+      const target = new Date();
+      target.setHours(slot.end, 0, 0, 0);
+
+      return {
+        meal: findItem(slot.type),
+        status: slot.status,
+        targetTime: target
+      };
     }
 
     const target = new Date();
     target.setDate(target.getDate() + 1);
     target.setHours(8, 0, 0, 0);
 
-    return { 
-        meal: findItem(1),
-        status: "UPCOMING" as const, 
-        targetTime: target 
+    return {
+      meal: findItem(1),
+      status: "UPCOMING" as const,
+      targetTime: target
     };
 
-}, []);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const today = new Date();
-        const dayIndex = today.getDay(); 
+        const dayIndex = today.getDay();
 
         const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0`);
 
@@ -135,11 +135,11 @@ export default function StudentDashboard() {
 
 
         if (initialState.meal) {
-            const mealTokenRes = await API.get(
-              `/meal/get-token?day=${dayIndex}&mealType=${initialState.meal.mealType}`
-            ).catch(() => null);
+          const mealTokenRes = await API.get(
+            `/meal/get-token?day=${dayIndex}&mealType=${initialState.meal.mealType}`
+          ).catch(() => null);
 
-            setMealToken(mealTokenRes?.data?.data || null);
+          setMealToken(mealTokenRes?.data?.data || null);
         }
 
       } catch (error) {
@@ -197,12 +197,15 @@ export default function StudentDashboard() {
   };
 
 
-  if (loading || userLoading) {
+  if (loading || userLoading || timeLeft.hours === '-1') {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} />
+        <div className="flex h-screen items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+            <p className="mt-4 text-gray-600">Loading Dashboard...</p>
+          </div>
         </div>
       </div>
     );
@@ -210,33 +213,32 @@ export default function StudentDashboard() {
 
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
 
       <main className="w-full mx-auto max-w-6xl px-4 sm:px-6 py-6">
-      
-        <div className={`relative overflow-hidden rounded-2xl p-6 sm:p-8 text-white shadow-lg transition-colors duration-500 ${
-            activeMeal.status === "SERVING" 
-                ? "bg-linear-to-br from-green-600 to-emerald-700"
-                : "bg-linear-to-br from-blue-600 to-indigo-700" 
-        }`}>
+
+        <div className={`relative overflow-hidden rounded-2xl p-6 sm:p-8 text-white shadow-lg transition-colors duration-500 ${activeMeal.status === "SERVING"
+            ? "bg-linear-to-br from-green-600 to-emerald-700"
+            : "bg-linear-to-br from-blue-600 to-indigo-700"
+          }`}>
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3" />
-          
+
           {activeMeal.meal ? (
             <div className="relative z-10">
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     {activeMeal.status === "SERVING" && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold uppercase tracking-wider border border-white/20 animate-pulse">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white"></span> Live
-                        </span>
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold uppercase tracking-wider border border-white/20 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white"></span> Live
+                      </span>
                     )}
                     <span className="text-blue-100 font-medium text-sm">
-                        {activeMeal.status === "SERVING" ? "Currently Serving" : "Next Meal"}
+                      {activeMeal.status === "SERVING" ? "Currently Serving" : "Next Meal"}
                     </span>
                   </div>
-                  
+
                   <h2 className="text-3xl sm:text-4xl font-bold mb-3">
                     {getMealName(activeMeal.meal.mealType)}
                   </h2>
@@ -245,11 +247,11 @@ export default function StudentDashboard() {
                     {getMealTimeDisplay(activeMeal.meal.mealType)}
                   </div>
                 </div>
-                
+
                 <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/20 shadow-lg">
-                  {activeMeal.meal.mealType === 1 ? <Coffee className="h-7 w-7"/> 
-                   : activeMeal.meal.mealType === 2 ? <Sun className="h-7 w-7"/> 
-                   : <Moon className="h-7 w-7"/>}
+                  {activeMeal.meal.mealType === 1 ? <Coffee className="h-7 w-7" />
+                    : activeMeal.meal.mealType === 2 ? <Sun className="h-7 w-7" />
+                      : <Moon className="h-7 w-7" />}
                 </div>
               </div>
 
@@ -265,9 +267,9 @@ export default function StudentDashboard() {
                 <div className="flex items-center gap-2 mb-4 text-white/80 text-sm">
                   <Clock className="h-4 w-4" />
                   <span>
-                    {activeMeal.status === "SERVING" 
-                        ? "Service Ends In" 
-                        : "Service Starts In"}
+                    {activeMeal.status === "SERVING"
+                      ? "Service Ends In"
+                      : "Service Starts In"}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 sm:gap-4">
@@ -307,13 +309,13 @@ export default function StudentDashboard() {
             {[1, 2, 3].map((type) => {
               const item = menu.find((m) => m.mealType === type);
               if (!item) return null;
-              
+
               const isActive = activeMeal.meal?.mealType === type;
 
               return (
                 <MenuRow
                   key={type}
-                  icon={type === 1 ? <Coffee className="h-5 w-5 text-orange-600"/> : type === 2 ? <Sun className="h-5 w-5 text-blue-600"/> : <Moon className="h-5 w-5 text-indigo-600"/>}
+                  icon={type === 1 ? <Coffee className="h-5 w-5 text-orange-600" /> : type === 2 ? <Sun className="h-5 w-5 text-blue-600" /> : <Moon className="h-5 w-5 text-indigo-600" />}
                   iconBg={type === 1 ? "bg-orange-100" : type === 2 ? "bg-blue-100" : "bg-indigo-100"}
                   title={getMealName(type)}
                   time={getMealTimeDisplay(type).split(" - ")[0]}
@@ -324,7 +326,7 @@ export default function StudentDashboard() {
               );
             })}
 
-             {menu.length === 0 && (
+            {menu.length === 0 && (
               <div className="text-center py-8">
                 <UtensilsCrossed className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500 text-sm">Menu not uploaded yet.</p>

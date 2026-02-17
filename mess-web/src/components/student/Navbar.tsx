@@ -69,12 +69,6 @@ export default function Navbar({ user }: NavbarProps) {
           </div>
 
           <div className="flex items-center gap-3">
-       
-            <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 border border-green-200">
-              <span className="text-green-600">₹</span>
-              {user?.currentBalance || 0}
-            </div>
-
             <button 
               onClick={() => router.push('/student/scan')}
               className="hidden md:flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-all shadow-sm active:scale-95"
