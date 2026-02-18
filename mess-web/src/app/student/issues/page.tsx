@@ -143,16 +143,17 @@ export default function ComplaintPage() {
         day: dayInt,
         mealType: mealTypeInt,
         description: description,
-      }).catch(() => null);
+      }).catch((err) => {
+            
+        triggerToast(err, "error");
+      });
 
       setDescription("");
       mutate("/feedback/get");
       if (feedbackres) {
         triggerToast("Complaint submitted successfully!", "success");
       }
-      else {
-        triggerToast("user", "error");
-      }
+ 
 
     } catch (error: unknown) {
       console.error("Submit Error:", error);

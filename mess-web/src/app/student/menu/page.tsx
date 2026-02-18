@@ -101,7 +101,7 @@ export default function WeeklyMenuPage() {
     );
   }
 
-  const isToday = selectedDayIndex === new Date().getDay();
+  const isToday = (selectedDayIndex === new Date().getDay());
   return (
     <div className="min-h-screen bg-gray-50">
 
@@ -270,7 +270,7 @@ export default function WeeklyMenuPage() {
                 Dietary Information
               </h4>
               <p className="text-green-800 text-sm leading-relaxed">
-                All meals are 100% vegetarian and prepared with fresh
+                All meals are prepared with fresh
                 ingredients daily. We maintain the highest standards of hygiene
                 and quality.
               </p>

@@ -9,7 +9,8 @@ export function middleware(request: NextRequest) {
   const isPublicPath = path === '/auth/login' || path === '/auth/signup'
   const isProtectedPath = path.startsWith('/admin') || path.startsWith('/student')
 
-  if (isPublicPath && token) {
+  
+  if (token && isPublicPath) {
     return NextResponse.redirect(new URL('/student/dashboard', request.url))
   }
 

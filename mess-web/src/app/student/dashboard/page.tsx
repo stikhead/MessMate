@@ -9,6 +9,7 @@ import StatsCard from "@/components/student/statsCard";
 import MenuRow from "@/components/student/MenuRow";
 import Toast from "@/components/student/Toast";
 import { useUser } from "@/hooks/useUser";
+import MessCard from "@/components/student/MessCard";
 
 const MEAL_SCHEDULE = [
   { type: 1, start: 8, end: 9, status: "SERVING" },
@@ -43,7 +44,7 @@ interface MenuItem {
 interface MealToken {
   tokenId: string;
   mealType: number;
-  status: string;
+  status: 'BOOKED' | 'REDEEMED' | 'CANCELLED';
   cost: number;
 }
 
@@ -138,8 +139,13 @@ export default function StudentDashboard() {
           const mealTokenRes = await API.get(
             `/meal/get-token?day=${dayIndex}&mealType=${initialState.meal.mealType}`
           ).catch(() => null);
+          const rawData = mealTokenRes?.data?.data;
 
-          setMealToken(mealTokenRes?.data?.data || null);
+          if (Array.isArray(rawData)) {
+            setMealToken(rawData[0] || null);
+          } else {
+            setMealToken(rawData || null);
+          }
         }
 
       } catch (error) {
@@ -217,10 +223,10 @@ export default function StudentDashboard() {
       <Navbar user={user} />
 
       <main className="w-full mx-auto max-w-6xl px-4 sm:px-6 py-6">
-
+      <MessCard></MessCard>
         <div className={`relative overflow-hidden rounded-2xl p-6 sm:p-8 text-white shadow-lg transition-colors duration-500 ${activeMeal.status === "SERVING"
-            ? "bg-linear-to-br from-green-600 to-emerald-700"
-            : "bg-linear-to-br from-blue-600 to-indigo-700"
+          ? "bg-linear-to-br from-green-600 to-emerald-700"
+          : "bg-linear-to-br from-blue-600 to-indigo-700"
           }`}>
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3" />
 

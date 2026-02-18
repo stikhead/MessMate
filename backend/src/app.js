@@ -24,16 +24,17 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 import userRouter from "./routes/users.routes.js";
-import mealRouter from "./routes/meal.routes.js"
-import menuRouter from "./routes/menu.routes.js"
-import walletRouter from "./routes/wallet.routes.js"
-import feebackRouter from "./routes/feedback.routes.js"
+import mealRouter from "./routes/meal.routes.js";
+import menuRouter from "./routes/menu.routes.js";
+import walletRouter from "./routes/wallet.routes.js";
+import feebackRouter from "./routes/feedback.routes.js";
+import cardRouter from "./routes/card.routes.js";
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/menu", menuRouter);
 app.use("/api/v1/meal", mealRouter);
 app.use("/api/v1/wallet", walletRouter);
 app.use('/api/v1/feedback', feebackRouter);
-
+app.use('/api/v1/cards', cardRouter)
 
 export default app;

@@ -67,11 +67,13 @@ const userSchema =  new mongoose.Schema({
     qrCodeExpiry: {
         type: Date
     },
-
+    isCardHolder: {
+        type: Boolean,
+        default: false
+    },
     cardNumber: {
-        type: String,
-        unique: true,
-        sparse: true
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Card"
     },
 
     messOffDates: [{

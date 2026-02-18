@@ -25,12 +25,10 @@ export default function StatsCard({ title, value, subValue, icon, color = "blue"
 
   return (
     <div className={`rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md ${className}`}>
-      
-      {/* Header: Title + Icon */}
+
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-600">{title}</h3>
         <div className={`flex h-10 w-10 items-center ${theme.text} justify-center rounded-lg ${theme.bg}`}>
-          {/* We clone the icon to force the correct text color onto it */}
           {React.cloneElement(icon as React.ReactElement)}
         </div>
       </div>

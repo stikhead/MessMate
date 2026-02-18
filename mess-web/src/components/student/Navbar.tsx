@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import Cookies from "js-cookie";
-import { UtensilsCrossed, CalendarDays, MessageSquare, QrCode, LogOut, Menu, X, LucideWallet } from "lucide-react";
+import { UtensilsCrossed, CalendarDays, MessageSquare, QrCode, LogOut, Menu, X, LucideWallet, LucideForkKnifeCrossed } from "lucide-react";
 import API from "@/lib/api";
 
 interface NavbarProps {
@@ -66,6 +66,7 @@ export default function Navbar({ user }: NavbarProps) {
             <NavLink href="/student/menu" icon={<UtensilsCrossed className="h-4 w-4" />} label="Menu" active={isActive("/student/menu")} />
             <NavLink href="/student/issues" icon={<MessageSquare className="h-4 w-4" />} label="Complaint" active={isActive("/student/issues")} />
             <NavLink href="/student/pay" icon={<LucideWallet className="h-4 w-4" />} label="Wallet" active={isActive("/student/pay")} />
+             <NavLink href="/student/booking" icon={<LucideForkKnifeCrossed className="h-4 w-4" />} label="Booking" active={isActive("/student/booking")} />
           </div>
 
           <div className="flex items-center gap-3">
@@ -99,6 +100,7 @@ export default function Navbar({ user }: NavbarProps) {
             <MobileNavLink onClick={closeMenu} href="/student/menu" icon={<UtensilsCrossed className="h-4 w-4" />} label="Menu" active={isActive("/student/menu")} />
             <MobileNavLink onClick={closeMenu} href="/student/pay" icon={<LucideWallet className="h-4 w-4" />} label="Wallet" active={isActive("/student/pay")} />
             <MobileNavLink onClick={closeMenu} href="/student/issues" icon={<MessageSquare className="h-4 w-4" />} label="Complaint" active={isActive("/student/issues")} />
+              <MobileNavLink onClick={closeMenu} href="/student/booking" icon={<LucideForkKnifeCrossed className="h-4 w-4" />} label="Booking" active={isActive("/student/booking")} />
             
             <div className="pt-3 mt-2 border-t border-gray-100 px-2">
                <div className="flex justify-between items-center mb-3 bg-green-50 p-3 rounded-lg border border-green-100">

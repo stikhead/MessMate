@@ -149,19 +149,25 @@ const cancelMeal = asyncHandler(async(req, res)=>{
 })
 
 const getMyTokens = asyncHandler(async(req, res)=>{
-    const {day, mealType} = req.query;
-
-    if(!day || !mealType){
-        throw new ApiError(400, "All fields are required")
+    const {day, mealType} = req.query
+    
+    const filter = {
+        student: req.user?._id,
     }
 
-    const bookingDate = await calculateActualDate(Number(day), 2); 
+    if(day){
 
-    const getMealToken = await MealToken.findOne({
-        student: req.user?._id,
-        date: bookingDate,
-        mealType: Number(mealType)
-    })
+    const bookingDate = await calculateActualDate(Number(day), 2); 
+        filter.date =  bookingDate
+    }
+    
+    if(mealType){
+        filter.mealType = mealType;
+    }
+
+    const getMealToken = await MealToken.find(
+        filter
+    ).sort({createdAt: -1})
     
     if(!getMealToken){
         throw new ApiError(404, "Not found");

@@ -76,9 +76,9 @@ console.log(generateSignature)
     await WalletTransaction.create({
         user: user._id,
         amount: rechargeAmount,
-        transactionType: "credit", // Money In
+        transactionType: "credit",
         description: `Wallet Recharge (Razorpay)`,
-        referenceId: razorpay_payment_id, // Save the Payment ID for tracking
+        referenceId: razorpay_payment_id,
         status: "SUCCESS",
         date: date
     });

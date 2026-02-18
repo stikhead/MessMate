@@ -1,0 +1,425 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import API from "@/lib/api";
+import Navbar from "@/components/student/Navbar";
+import Toast from "@/components/student/Toast";
+import { useUser } from "@/hooks/useUser";
+import { UtensilsCrossed, History } from "lucide-react";
+import { CheckCircle2, Clock, Coffee, Moon, Sun, Calendar, XCircle } from "lucide-react";
+import MealCard from "@/components/student/MealCard";
+
+interface MenuItem {
+  _id: string;
+  mealType: number;
+  items: string;
+  price: number;
+}
+
+interface MealToken {
+  _id: string;
+  mealType: number;
+  status: "BOOKED" | "REDEEMED" | "CANCELLED";
+  qrCode: string;
+  createdAt: string;
+  day?: number;
+}
+
+const DAYS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+export default function BookMealPage() {
+  const { user, refreshUser } = useUser();
+  const [selectedDate, setSelectedDate] = useState<"TODAY" | "TOMORROW">(
+    "TODAY"
+  );
+
+  const [menu, setMenu] = useState<MenuItem[]>([]);
+  const [tokens, setTokens] = useState<MealToken[]>([]);
+  const [bookingHistory, setBookingHistory] = useState<MealToken[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [bookingLoading, setBookingLoading] = useState<number | null>(null);
+  const [toast, setToast] = useState<{
+    show: boolean;
+    msg: string;
+    type: "success" | "error";
+  } | null>(null);
+
+  const getDayIndex = (offset: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.getDay();
+  };
+
+  const isMealPast = (type: number) => {
+    if (selectedDate === "TOMORROW") return false;
+
+    const h = new Date().getHours();
+    if (type === 1 && h >= 6) return true; // Breakfast ends at 10 AM
+    if (type === 2 && h >= 10) return true; // Lunch ends at 3 PM
+    if (type === 3 && h >= 18) return true; // Dinner ends at 10 PM
+    return false;
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const dayOffset = selectedDate === "TODAY" ? 0 : 1;
+      const dayIndex = getDayIndex(dayOffset);
+
+      const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0`);
+      const menuData = Array.isArray(menuRes.data.data)
+        ? menuRes.data.data
+        : [menuRes.data.data];
+      setMenu(menuData.filter((i: unknown) => i !== null));
+
+      const res = await API.get(`/meal/get-token?day=${dayIndex}`);
+      const fetchedTokens = res.data.data;
+
+      if (Array.isArray(fetchedTokens)) {
+        setTokens(fetchedTokens);
+      } else if (fetchedTokens) {
+        setTokens([fetchedTokens]);
+      } else {
+        setTokens([]);
+      }
+    } catch (error) {
+      console.error(error);
+      setToast({
+        show: true,
+        msg: "Failed to load meal data",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchBookingHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await API.get("/meal/get-token");
+      const history = res.data.data;
+
+      if (Array.isArray(history)) {
+        setBookingHistory(history);
+      } else if (history) {
+        setBookingHistory([history]);
+      } else {
+        setBookingHistory([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch booking history:", error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [selectedDate]);
+
+  useEffect(() => {
+    fetchBookingHistory();
+  }, []);
+
+  const handleCancel = async (mealType: number) => {
+    try {
+      const dayOffset = selectedDate === "TODAY" ? 0 : 1;
+      const dayIndex = getDayIndex(dayOffset);
+
+      await API.post("/meal/cancel", {
+        mealType,
+        day: dayIndex,
+      });
+
+      setToast({
+        show: true,
+        msg: "Meal cancelled successfully!",
+        type: "success",
+      });
+
+      await refreshUser();
+      await fetchData();
+      await fetchBookingHistory();
+    } catch (error: unknown) {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Cancellation failed";
+      setToast({ show: true, msg, type: "error" });
+    } finally {
+      setBookingLoading(null);
+      
+    }
+  }
+  const handleBook = async (mealType: number, price: number) => {
+    if (!user) return;
+
+    if (user.currentBalance < price) {
+      setToast({
+        show: true,
+        msg: "Insufficient balance! Please recharge.",
+        type: "error",
+      });
+      return;
+    }
+
+    setBookingLoading(mealType);
+    try {
+      const dayOffset = selectedDate === "TODAY" ? 0 : 1;
+      const dayIndex = getDayIndex(dayOffset);
+
+      await API.post("/meal/book", {
+        mealType,
+        day: dayIndex,
+      });
+
+      setToast({
+        show: true,
+        msg: "Meal booked successfully!",
+        type: "success",
+      });
+
+      await refreshUser();
+      await fetchData();
+      await fetchBookingHistory();
+    } catch (error: unknown) {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Booking failed";
+      setToast({ show: true, msg, type: "error" });
+    } finally {
+      setBookingLoading(null);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar user={user} />
+
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 pb-24 space-y-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <UtensilsCrossed className="h-6 w-6 sm:h-7 sm:w-7 text-blue-600" />
+              Book Your Meal
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">
+              Select a meal to reserve your spot
+            </p>
+          </div>
+
+          <div className="bg-white p-1 rounded-xl border border-gray-200 shadow-sm flex">
+            <button
+              onClick={() => setSelectedDate("TODAY")}
+              className={`px-5 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                selectedDate === "TODAY"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              Today
+            </button>
+            <button
+              onClick={() => setSelectedDate("TOMORROW")}
+              className={`px-5 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                selectedDate === "TOMORROW"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              Tomorrow
+            </button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-80 bg-white border border-gray-200 rounded-2xl animate-pulse"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+            {[1, 2, 3].map((type) => (
+              <MealCard
+                key={type}
+                type={type}
+                menuItem={menu.find((m) => m.mealType === type)}
+                token={tokens.find((t) => t.mealType === type)}
+                isPast={isMealPast(type)}
+                onBook={handleBook}
+                onCancel={handleCancel}
+                loading={bookingLoading === type}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200">
+          <h2 className="text-base font-bold text-gray-900 mb-5 flex items-center gap-2">
+            <History className="h-5 w-5 text-gray-400" />
+            Booking History
+          </h2>
+
+          <div className="overflow-y-auto max-h-73 space-y-3 pr-1">
+            {historyLoading ? (
+              [1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-3 rounded-xl animate-pulse"
+                >
+                  <div className="h-10 w-10 rounded-full bg-gray-200 shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-36" />
+                    <div className="h-3 bg-gray-100 rounded w-24" />
+                  </div>
+                  <div className="h-5 bg-gray-200 rounded w-20" />
+                </div>
+              ))
+            ) : bookingHistory && bookingHistory.length > 0 ? (
+              bookingHistory.map((booking) => (
+                <BookingHistoryRow key={booking._id} booking={booking} />
+              ))
+            ) : (
+              <div className="text-center py-10">
+                <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-gray-100 mb-3">
+                  <History className="h-7 w-7 text-gray-400" />
+                </div>
+                <p className="text-sm font-semibold text-gray-700 mb-1">
+                  No bookings yet
+                </p>
+                <p className="text-xs text-gray-500">
+                  Your booking history will appear here
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {toast && (
+        <Toast
+          message={toast.msg}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+
+
+
+function BookingHistoryRow({ booking }: { booking: MealToken }) {
+  const getMealInfo = (type: number) => {
+    const configs = {
+      1: {
+        name: "Breakfast",
+        icon: <Coffee className="h-5 w-5 text-orange-600" />,
+        bg: "bg-orange-100",
+      },
+      2: {
+        name: "Lunch",
+        icon: <Sun className="h-5 w-5 text-blue-600" />,
+        bg: "bg-blue-100",
+      },
+      3: {
+        name: "Dinner",
+        icon: <Moon className="h-5 w-5 text-indigo-600" />,
+        bg: "bg-indigo-100",
+      },
+    };
+    return (
+      configs[type as keyof typeof configs] || {
+        name: "Meal",
+        icon: <UtensilsCrossed className="h-5 w-5 text-gray-600" />,
+        bg: "bg-gray-100",
+      }
+    );
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getDayName = (dayNum?: number) => {
+    if (dayNum === undefined) return "";
+    return DAYS[dayNum] || "";
+  };
+
+  const info = getMealInfo(booking.mealType);
+
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
+      {/* Icon */}
+      <div
+        className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${info.bg}`}
+      >
+        {info.icon}
+      </div>
+
+      {/* Details */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-800 truncate">
+          {info.name}
+          {booking.day !== undefined && (
+            <span className="text-gray-500 font-normal ml-1.5">
+              • {getDayName(booking.day)}
+            </span>
+          )}
+        </p>
+        <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+          <Calendar className="h-3 w-3" />
+          {formatDate(booking.createdAt)}
+        </p>
+      </div>
+
+      {/* Status Badge */}
+      <div className="shrink-0">
+        <StatusBadge status={booking.status} />
+      </div>
+    </div>
+  );
+}
+
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "REDEEMED") {
+    return (
+      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-bold border border-green-200 uppercase tracking-wide">
+        <CheckCircle2 className="h-3 w-3" /> Redeemed
+      </span>
+    );
+  }
+  if (status === "CANCELLED") {
+    return (
+      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-600 text-[10px] font-bold border border-red-200 uppercase tracking-wide">
+        <XCircle className="h-3 w-3" /> Cancelled
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 uppercase tracking-wide">
+      <Clock className="h-3 w-3" /> Booked
+    </span>
+  );
+}

@@ -86,7 +86,7 @@ const loginUser = asyncHandler(async(req, res)=>{
     }
 
     const user = await User.findOne({
-        $or: [{email: userMethod}, {cardNumber: userMethod}]
+        $or: [{email: userMethod}]
     }).select("+password")
 
     if(!user){
@@ -255,7 +255,6 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
         "success")
     )  
 })
-
 
 
 export {registerUser, loginUser, logoutUser, getCurrentUser, changeCurrentPassword, refreshAccessToken};
