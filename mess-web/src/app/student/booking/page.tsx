@@ -14,9 +14,6 @@ import { Badge } from "@/components/ui/badge";
 
 
 
-
-
-
 export default function BookMealPage() {
   const { user, refreshUser } = useUser();
   const [selectedDate, setSelectedDate] = useState<"TODAY" | "TOMORROW">("TODAY");
@@ -50,10 +47,10 @@ export default function BookMealPage() {
       const dayOffset = selectedDate === "TODAY" ? 0 : 1;
       const dayIndex = getDayIndex(dayOffset);
 
-      const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0`);
-      const menuData = Array.isArray(menuRes.data.data)
-        ? menuRes.data.data
-        : [menuRes.data.data];
+      const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0`).catch(()=>null);
+      const menuData = Array.isArray(menuRes?.data.data)
+        ? menuRes?.data.data
+        : [menuRes?.data.data];
       setMenu(menuData.filter((i: unknown) => i !== null));
 
       const res = await API.get(`/meal/get-token?day=${dayIndex}`);
@@ -231,7 +228,7 @@ export default function BookMealPage() {
               <MealCard
                 key={type}
                 type={type}
-                menuItem={menu.find((m) => m.mealType === type)}
+                menuItem={menu.find((m) => m?.mealType === type)}
                 token={tokens.find((t) => t.mealType === type)}
                 isPast={isMealPast(type)}
                 onBook={handleBook}

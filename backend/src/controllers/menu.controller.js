@@ -82,18 +82,12 @@ const getMenuByDate = asyncHandler(async(req, res)=>{
 
 
 const getWeeklyMenu = asyncHandler(async(req, res)=>{
-    const {day} = req.query;
-    if(!day){
-        throw new ApiError(400, "All fields are required");
-    }
-    const dayNumber = Number(day);
-    const getWeeklyMenu = await Menu.find({
-        day: dayNumber
-    }).sort({ 
+ 
+    const getWeeklyMenu = await Menu.find().sort({ 
         day: 1, 
-        mealType: 1 
+        mealType: 1 ,
+        createdAt: -1
     });
-    const firstDay = getWeeklyMenu[0].dayName;
     return res
     .status(200)
     .json(
@@ -102,22 +96,18 @@ const getWeeklyMenu = asyncHandler(async(req, res)=>{
 })
 
 const updateMenu = asyncHandler(async(req, res)=>{
-    const {day, mealType, items} = req.body; // i mean we would only allow the name of dishes in case of typo or new update - keeping items as a string
+    const {id, items } = req.query; // i mean we would only allow the name of dishes in case of typo or new update - keeping items as a string
     
-    if(!items){
-        throw new ApiError(400, "Item field is required");
-    }
+    
 
-    if(!day || !mealType){
+    if(!id || !items){
         throw new ApiError(400, "All fields are required")
     }
     if(req.user.role === 'student'){
         throw new ApiError(403, "Access Denied")
     }
 
-    const getItem = await Menu.findOne({
-        $and: [{day: day}, {mealType: mealType}]
-    })
+    const getItem = await Menu.findById(id);
 
     if(!getItem){
         throw new ApiError(400, "Menu doesnt exist")
@@ -134,17 +124,15 @@ const updateMenu = asyncHandler(async(req, res)=>{
 })
 
 const deleteMenu = asyncHandler(async(req, res)=>{
-    const {day, mealType} = req.body;
+    const {id} = req.query;
 
-    if(!day || !mealType){
+    if(!id){
         throw new ApiError(400, "All fields are required")
     }
     if(req.user.role === 'student'){
         throw new ApiError(403, "Access denied")
     }
-    const isDeleted = await Menu.deleteOne({
-        $and: [{day: day}, {mealType: mealType}]
-    })
+    const isDeleted = await Menu.findByIdAndDelete({_id: id})
 
     if(isDeleted.deletedCount===0){
         throw new ApiError(404, "menu not found")

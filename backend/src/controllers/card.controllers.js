@@ -4,8 +4,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import {User} from "../models/users.models.js";
 const createCard = asyncHandler(async(req, res)=>{
-    const { isActive, email, phoneNumber } = req.body;
-    if(!isActive || !email || !phoneNumber){
+    const { userID } = req.body;
+    if( !userID ){
         throw new ApiError(400, "All fields are required")
     }
     if(req.user.role === 'student'){
@@ -13,8 +13,7 @@ const createCard = asyncHandler(async(req, res)=>{
     }
 
     const user = await User.findOne({
-        email: email,
-        phoneNumber: phoneNumber
+       _id: userID
     });
 
      if(!user){
@@ -26,7 +25,6 @@ const createCard = asyncHandler(async(req, res)=>{
     }
 
     const card = await Card.create({
-        isActive: isActive,
         owner: user._id
     });
 

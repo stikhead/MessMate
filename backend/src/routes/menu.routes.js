@@ -12,7 +12,7 @@ router.route("/getMenu").get(verifyJWT, getMenuByDate);
 router.route("/getWeeklyMenu").get(verifyJWT, getWeeklyMenu);
 
 
-router.route("/update").patch(verifyJWT, verifyAdmin, updateMenu);
+router.route("/update").put(verifyJWT, verifyAdmin, updateMenu);
 
 
 router.route("/delete").delete(verifyJWT, verifyAdmin, deleteMenu);

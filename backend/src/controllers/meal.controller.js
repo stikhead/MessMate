@@ -234,24 +234,26 @@ const generateStaffQR = asyncHandler(async(req, res)=>{
     if(req.user.role === 'student'){
         throw new ApiError(403, "Access denied");
     }
-
-    const timeblock = Math.floor(Date.now()/30000);
+    const createTime = Date.now();
+    const timeblock = Math.floor(createTime/30000);
 
     const secret = process.env.QR_CODE_SECRET;
 
     if(!secret){
         throw new ApiError(500, "SERVER ERROR")
     }
-
+    
     const qrPayload = crypto
         .createHmac('sha256', secret)
         .update(String(timeblock))
         .digest('hex');
 
+
+    const expiresAt = (timeblock + 1) * 30000;
     return res
     .status(201)
     .json(
-        new ApiResponse(201, {qrPayload}, "New QR payload generated")
+        new ApiResponse(201, {qrPayload, expiresAt}, "New QR payload generated")
     )
 
 

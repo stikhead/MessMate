@@ -2,22 +2,9 @@ import API from "@/lib/api";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Cookies from "js-cookie";
+import { UserProfile } from "@/types/common";
 
-export interface UserProfile {
-  fullName: string;
-  roll_no: string;
-  currentBalance: number;
-  role: string;
-  cardNumber: MessCard;
-  isCardHolder: boolean;
-}
 
-export interface MessCard {
-  number: string;
-  mealAmount: number;
-  isActive: string;
-  isAutoBookingEnabled: boolean;
-}
 
 export function useUser() {
   const router = useRouter();
@@ -25,7 +12,6 @@ export function useUser() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Helper to clear session
   const logout = useCallback(() => {
     Cookies.remove("accessToken");
     localStorage.removeItem("user");

@@ -256,5 +256,24 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
     )  
 })
 
+const getAllUsers = asyncHandler(async(req, res)=>{
+    if(req?.user._id === 'student'){
+        throw new ApiError(401, "missing perms");
+    }
 
-export {registerUser, loginUser, logoutUser, getCurrentUser, changeCurrentPassword, refreshAccessToken};
+    const users = await User.find();
+
+    if(!users){
+        throw new ApiError(404, "Not found");
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, users, "success")
+    )
+
+})
+
+
+export {registerUser, loginUser, logoutUser, getCurrentUser, changeCurrentPassword, refreshAccessToken, getAllUsers};

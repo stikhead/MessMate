@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { changeCurrentPassword, getCurrentUser, loginUser, logoutUser, refreshAccessToken, registerUser } from "../controllers/users.controller.js";
-import { verifyJWT, verifyRefreshToken } from "../middlewares/auth.middlewares.js";
+import { changeCurrentPassword, getAllUsers, getCurrentUser, loginUser, logoutUser, refreshAccessToken, registerUser } from "../controllers/users.controller.js";
+import { verifyAdmin, verifyJWT, verifyRefreshToken } from "../middlewares/auth.middlewares.js";
 
 const router = Router();
 
@@ -16,4 +16,5 @@ router.route("/changeCurrentPassword").post(verifyJWT, changeCurrentPassword);
 
 router.route("/getCurrentUser").get(verifyJWT, getCurrentUser)
 
+router.route("/getUsers").get(verifyJWT, verifyAdmin, getAllUsers)
 export default router;

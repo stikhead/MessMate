@@ -64,7 +64,7 @@ export default function StudentDashboard() {
     const now = new Date();
     const currentHour = now.getHours();
 
-    const findItem = (type: number) => menuItems.find(m => m.mealType === type) || null;
+    const findItem = (type: number) => menuItems.find(m => m?.mealType === type) || null;
 
     const slot = MEAL_SCHEDULE.find(s => currentHour >= s.start && currentHour < s.end);
 
@@ -98,9 +98,9 @@ export default function StudentDashboard() {
         const today = new Date();
         const dayIndex = today.getDay();
 
-        const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0`);
+        const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0`).catch(()=>null);
 
-        const menuData = Array.isArray(menuRes.data.data) ? menuRes.data.data : [menuRes.data.data];
+        const menuData = Array.isArray(menuRes?.data.data) ? menuRes?.data.data : [menuRes?.data.data];
         const validMenu = menuData.filter((item: MenuItem) => item !== null);
         setMenu(validMenu);
 
@@ -285,7 +285,7 @@ export default function StudentDashboard() {
 
           <div className="space-y-3">
             {[1, 2, 3].map((type) => {
-              const item = menu.find((m) => m.mealType === type);
+              const item = menu.find((m) => m?.mealType === type);
               if (!item) return null;
 
               const isActive = activeMeal.meal?.mealType === type;

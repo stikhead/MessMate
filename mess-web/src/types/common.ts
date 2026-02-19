@@ -6,9 +6,47 @@ export interface ToastState {
   type: "success" | "error";
 }
 
+export interface UserProfile {
+  fullName: string;
+  roll_no: string;
+  currentBalance: number;
+  role: string;
+  cardNumber: MessCard;
+  isCardHolder: boolean;
+}
+
+export interface Student {
+  _id: string;
+  fullName: string;
+  roll_no: string;
+  email: string;
+  phone?: string;
+  hostel?: string;
+  currentBalance: number;
+  isCardHolder: boolean;
+  cardNumber?: {
+    mealAmount?: number;
+    isActive?: "ACTIVE" | "INACTIVE";
+    isAutoBookingEnabled?: boolean;
+  };
+  createdAt: string;
+}
+
+export interface AssignCardForm {
+  userId: string;
+}
+
+export interface MessCard {
+  number: string;
+  mealAmount: number;
+  isActive: string;
+  isAutoBookingEnabled: boolean;
+}
+
 export interface MenuItem {
   _id: string;
   mealType: number;
+  day: number;
   items: string;
   price: number;
 }
@@ -89,4 +127,11 @@ export interface CategoryCardProps {
   icon: ReactNode;
   selected: boolean;
   onClick: () => void;
+}
+
+export interface MenuFormData {
+  day: number;
+  mealType: number;
+  items: string;
+  price: number;
 }

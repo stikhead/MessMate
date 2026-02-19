@@ -1,3 +1,5 @@
+import { Coffee, Moon, Sun } from "lucide-react";
+
 export const days = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ];
 export const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -41,6 +43,12 @@ export const mealMap: Record<string, number> = {
   "Lunch": 2,
   "Dinner": 3
 };
+
+export const MEAL_TYPES = [
+  { value: 1, label: "Breakfast", icon: Coffee, color: "text-orange-600" },
+  { value: 2, label: "Lunch", icon: Sun, color: "text-blue-600" },
+  { value: 3, label: "Dinner", icon: Moon, color: "text-indigo-600" },
+];
 
 export const getDayName = (num: number) => days[num - 1] || "Unknown";
 export const getMealName = (num: number) => MEALS[num - 1] || "Unknown";
