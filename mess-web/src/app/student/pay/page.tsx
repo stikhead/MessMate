@@ -1,78 +1,18 @@
 "use client";
 
-import { useState} from "react";
+import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import API from "@/lib/api";
 import Navbar from "@/components/student/Navbar";
 import Toast from "@/components/student/Toast";
 import { Wallet, History, ArrowUpRight, ArrowDownLeft, Loader2, ShieldCheck, IndianRupee } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-
-function StatusBadge({ status }: { status: string }) {
-  if (status === "SUCCESS") {
-    return (
-      <span className="text-[10px] font-bold text-green-600 uppercase tracking-wide">
-        Success
-      </span>
-    );
-  }
-  if (status === "FAILED") {
-    return (
-      <span className="text-[10px] font-bold text-red-500 uppercase tracking-wide">
-        Failed
-      </span>
-    );
-  }
-  return (
-    <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-wide">
-      Pending
-    </span>
-  );
-}
-
-interface Transaction {
-  _id: string;
-  amount: number;
-  transactionType: "credit";
-  status: "SUCCESS" | "FAILED" | "PENDING";
-  description: string;
-  date: string;
-  razorpay_payment_id?: string;
-}
+import { formatDate, MAX_AMOUNT, QUICK_AMOUNTS } from "@/constants";
+import { Transaction } from "@/types/common";
+import { RazorpayOptions } from "@/types/razorpay";
+import { Badge } from "@/components/ui/badge";
 
 
-interface RazorpayResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-}
-
-declare global {
-  interface Window {
-    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
-  }
-}
-
-interface RazorpayOptions {
-  key: string | undefined;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  handler: (response: RazorpayResponse) => Promise<void>;
-  prefill: { name: string; contact: string };
-  theme: { color: string };
-}
-
-interface RazorpayInstance {
-  open: () => void;
-}
-
-
-
-const QUICK_AMOUNTS = [50, 100, 200, 500];
-const MAX_AMOUNT = 500;
 
 const loadRazorpayScript = (): Promise<boolean> => {
   return new Promise((resolve) => {
@@ -88,14 +28,6 @@ const loadRazorpayScript = (): Promise<boolean> => {
     document.body.appendChild(script);
   });
 };
-
-const formatDate = (dateString: string) =>
-  new Date(dateString).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 
 
 
@@ -198,13 +130,13 @@ export default function PaymentPage() {
   if (userLoading || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-      <Navbar user={user} />
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading Wallet...</p>
+        <Navbar user={user} />
+        <div className="flex h-screen items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+            <p className="mt-4 text-gray-600">Loading Wallet...</p>
+          </div>
         </div>
-      </div>
       </div>
     );
   }
@@ -265,8 +197,8 @@ export default function PaymentPage() {
                 key={val}
                 onClick={() => setAmount(val)}
                 className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${amount === val
-                    ? "bg-blue-50 border-blue-400 text-blue-600 shadow-sm"
-                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600"
+                  ? "bg-blue-50 border-blue-400 text-blue-600 shadow-sm"
+                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600"
                   }`}
               >
                 +₹{val}
@@ -319,8 +251,8 @@ export default function PaymentPage() {
                 >
                   <div
                     className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${txn.transactionType === "credit"
-                        ? "bg-green-100"
-                        : "bg-red-100"
+                      ? "bg-green-100"
+                      : "bg-red-100"
                       }`}
                   >
                     {txn.transactionType === "credit" ? (
@@ -338,13 +270,18 @@ export default function PaymentPage() {
                   <div className="text-right shrink-0">
                     <p
                       className={`text-sm font-bold ${txn.transactionType === "credit"
-                          ? "text-green-600"
-                          : "text-red-500"
+                        ? "text-green-600"
+                        : "text-red-500"
                         }`}
                     >
                       {txn.transactionType === "credit" ? "+" : "−"}₹{txn.amount.toLocaleString("en-IN")}
                     </p>
-                    <StatusBadge status={txn.status} />
+                    <Badge variant={
+                        txn.status === 'success' ? 'success' :
+                        txn.status === "failed" ? 'failed' : 'success'
+                    } >
+                        {txn.status}
+                    </Badge>
                   </div>
                 </div>
               ))

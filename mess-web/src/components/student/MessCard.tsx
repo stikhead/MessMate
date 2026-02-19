@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, Lock, Loader2, Wallet, Sparkles } from "luci
 import API from "@/lib/api";
 import { useUser } from "@/hooks/useUser";
 import Toast from "./Toast";
+import { PLAN_COST, PLAN_MEALS } from "@/constants";
 
 interface CardDetails {
   mealAmount: number;
@@ -26,14 +27,13 @@ export default function MessCard() {
     type: "success" | "error";
   } | null>(null);
 
-  const PLAN_COST = 2000;
-  const PLAN_MEALS = 45;
+ 
 
  
   const fetchCardData = useCallback(async () => {
     try {
-      const res = await API.get("/cards/get");
-      if (res.data && res.data.data) {
+      const res = await API.get("/cards/get").catch(() => null);
+      if (res?.data && res.data.data) {
         setCardData(res.data.data);
       }
     } catch (error) {
@@ -115,7 +115,7 @@ export default function MessCard() {
           <div className="absolute top-0 right-0 h-48 w-48 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
           <div className="absolute bottom-0 left-0 h-32 w-32 bg-indigo-500/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4" />
 
-          <div className="relative z-10 text-center">
+          <div className="flex flex-col items-center relative z-10 text-center">
             <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-800 border-2 border-gray-700 mb-4 shadow-inner">
               <Lock className="h-8 w-8 text-gray-400" />
             </div>
@@ -147,18 +147,6 @@ export default function MessCard() {
                 </>
               )}
             </button>
-
-            <p className="mt-4 text-xs text-gray-500">
-              Wallet Balance:{" "}
-              <span className={hasEnoughBalance ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
-                ₹{walletBalance.toLocaleString("en-IN")}
-              </span>
-              {!hasEnoughBalance && (
-                <span className="block mt-1 text-red-400">
-                  Add ₹{(PLAN_COST - walletBalance).toLocaleString("en-IN")} more
-                </span>
-              )}
-            </p>
           </div>
         </div>
 
@@ -213,8 +201,8 @@ export default function MessCard() {
               <div
                 className={`p-2 rounded-full ${
                   isAutoBookingEnabled
-                    ? "bg-green-400/20 text-green-300"
-                    : "bg-orange-400/20 text-orange-300"
+                    ? "bg-white text-green-700"
+                    : "bg-white text-red-700"
                 }`}
               >
                 {isAutoBookingEnabled ? (
@@ -226,13 +214,13 @@ export default function MessCard() {
               <div>
                 <p className="font-bold text-sm sm:text-base">
                   {isAutoBookingEnabled
-                    ? "Auto-Booking Active"
-                    : "Auto-Booking Paused"}
+                    ? "Autobooking Active"
+                    : "Autobooking Paused"}
                 </p>
                 <p className="text-xs sm:text-sm text-blue-100 opacity-90 mt-0.5">
                   {isAutoBookingEnabled
                     ? "Tomorrow's meals will be booked automatically"
-                    : "Meals for tomorrow are skipped"}
+                    : "Meals will be skipped until autobooking is disabled"}
                 </p>
               </div>
             </div>
@@ -258,16 +246,6 @@ export default function MessCard() {
               )}
             </button>
           </div>
-
-          {mealAmount < 5 && (
-            <div className="mt-4 bg-red-500/20 border border-red-400/30 rounded-xl p-3 flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-red-300 shrink-0 mt-0.5" />
-              <p className="text-xs text-red-100">
-                <strong>Low balance!</strong> You have only {mealAmount} meals
-                remaining. Recharge soon.
-              </p>
-            </div>
-          )}
         </div>
       </div>
 

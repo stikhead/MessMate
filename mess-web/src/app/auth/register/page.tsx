@@ -6,13 +6,15 @@ import { useRouter } from "next/navigation";
 import API from "@/lib/api";
 import { User, Mail, Lock, Hash, Loader2, ArrowRight, UtensilsCrossed } from "lucide-react";
 import Toast from "@/components/student/Toast"; 
+import { RegisterFormData } from "@/types/common";
+
 
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: "success" | "error" } | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RegisterFormData>({
     fullName: "",
     email: "",
     roll_no: "",
@@ -48,7 +50,11 @@ export default function RegisterPage() {
         password: formData.password,
       });
 
-      setToast({ show: true, message: "Account created! Redirecting to login...", type: "success" });
+      setToast({ 
+        show: true, 
+        message: "Account created! Redirecting to login...", 
+        type: "success" 
+      });
       
       setTimeout(() => {
         router.push("/auth/login");
@@ -58,7 +64,11 @@ export default function RegisterPage() {
     } catch (error: any) {
       console.error("Registration Error:", error);
       const msg = error.response?.data?.message || "Registration failed. Please try again.";
-      setToast({ show: true, message: msg, type: "error" });
+      setToast({ 
+        show: true, 
+        message: msg, 
+        type: "error" 
+      });
     } finally {
       setLoading(false);
     }

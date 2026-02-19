@@ -10,15 +10,9 @@ import MenuRow from "@/components/student/MenuRow";
 import Toast from "@/components/student/Toast";
 import { useUser } from "@/hooks/useUser";
 import MessCard from "@/components/student/MessCard";
+import { MEAL_SCHEDULE } from "@/constants";
+import { MealToken, MenuItem, ToastState, UserStats } from "@/types/common";
 
-const MEAL_SCHEDULE = [
-  { type: 1, start: 8, end: 9, status: "SERVING" },
-  { type: 1, start: 0, end: 8, status: "UPCOMING" },
-  { type: 2, start: 13, end: 14, status: "SERVING" },
-  { type: 2, start: 9, end: 13, status: "UPCOMING" },
-  { type: 3, start: 20, end: 21, status: "SERVING" },
-  { type: 3, start: 14, end: 20, status: "UPCOMING" },
-] as const;
 
 
 function TimeUnit({ value, label }: { value: string; label: string }) {
@@ -34,31 +28,10 @@ function TimeUnit({ value, label }: { value: string; label: string }) {
   );
 }
 
-interface MenuItem {
-  _id: string;
-  mealType: number;
-  items: string;
-  price: number;
-}
 
-interface MealToken {
-  tokenId: string;
-  mealType: number;
-  status: 'BOOKED' | 'REDEEMED' | 'CANCELLED';
-  cost: number;
-}
 
-interface UserStats {
-  mealsThisWeek: number;
-  totalMeals: number;
-  attendanceRate: number;
-}
 
-interface ToastState {
-  show: boolean;
-  message: string;
-  type: "success" | "error";
-}
+
 
 
 export default function StudentDashboard() {
@@ -304,7 +277,6 @@ export default function StudentDashboard() {
           <StatsCard title="Status" value={mealToken?.status || "Not Booked"} icon={<LucideAlarmCheck />} color={mealToken ? "green" : "gray"} />
         </div>
 
-        {/* --- FULL MENU --- */}
         <div className="rounded-2xl bg-white p-5 sm:p-6 shadow-sm border border-gray-100 mt-6">
           <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-gray-400" />

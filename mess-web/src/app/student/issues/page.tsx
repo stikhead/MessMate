@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import API from "@/lib/api";
 import Navbar from "@/components/student/Navbar";
@@ -8,6 +8,9 @@ import Toast from "@/components/student/Toast"; // <--- Import Toast
 import { Droplets, Utensils, Scale, Clock, CheckCircle2, Loader2, Calendar, Coffee } from "lucide-react";
 import { AxiosError } from "axios";
 import { useUser } from "@/hooks/useUser";
+import { dayMap, days, getDayName, getMealName, mealMap, MEALS } from "@/constants";
+import { CategoryCardProps, Complaint, ToastState } from "@/types/common";
+import { Badge } from "@/components/ui/badge";
 
 
 function CategoryCard({ label, icon, selected, onClick }: CategoryCardProps) {
@@ -29,45 +32,6 @@ function CategoryCard({ label, icon, selected, onClick }: CategoryCardProps) {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === "RESOLVED") {
-    return (
-      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-bold border border-green-200 uppercase tracking-wide">
-        <CheckCircle2 className="h-3 w-3" /> Resolved
-      </span>
-    );
-  }
-  if (status === "SUBMITTED") {
-    return (
-      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 text-[10px] font-bold border border-yellow-200 uppercase tracking-wide">
-        <Loader2 className="h-3 w-3 animate-spin" /> In Progress
-      </span>
-    );
-  }
-}
-interface Complaint {
-  _id: string;
-  category: string;
-  day?: number;
-  mealType?: number;
-  description: string;
-  status: "Pending" | "In Progress" | "Resolved";
-  response?: string;
-  createdAt: string;
-}
-
-interface CategoryCardProps {
-  label: string;
-  icon: ReactNode;
-  selected: boolean;
-  onClick: () => void;
-}
-
-interface ToastState {
-  show: boolean;
-  message: string;
-  type: "success" | "error";
-}
 
 
 const fetcher = (url: string) =>
@@ -79,27 +43,8 @@ const fetcher = (url: string) =>
   });
 
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const MEALS = ["Breakfast", "Lunch", "Dinner"];
 
-const dayMap: Record<string, number> = {
-  "Monday": 1,
-  "Tuesday": 2,
-  "Wednesday": 3,
-  "Thursday": 4,
-  "Friday": 5,
-  "Saturday": 6,
-  "Sunday": 7
-};
 
-const mealMap: Record<string, number> = {
-  "Breakfast": 1,
-  "Lunch": 2,
-  "Dinner": 3
-};
-
-const getDayName = (num: number) => DAYS[num - 1] || "Unknown";
-const getMealName = (num: number) => MEALS[num - 1] || "Unknown";
 
 
 export default function ComplaintPage() {
@@ -112,7 +57,7 @@ export default function ComplaintPage() {
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const todayIndex = new Date().getDay();
-  const defaultDay = todayIndex === 0 ? "Sunday" : DAYS[todayIndex - 1];
+  const defaultDay = todayIndex === 0 ? "Sunday" : days[todayIndex - 1];
   const [selectedDay, setSelectedDay] = useState<string>(defaultDay);
 
   const { data: complaints, isLoading } = useSWR(
@@ -211,7 +156,7 @@ export default function ComplaintPage() {
                   onChange={(e) => setSelectedDay(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none appearance-none transition-all text-gray-700 font-medium cursor-pointer hover:bg-gray-100"
                 >
-                  {DAYS.map(day => <option key={day} value={day}>{day}</option>)}
+                  {days.map(day => <option key={day} value={day}>{day}</option>)}
                 </select>
               </div>
             </div>
@@ -278,7 +223,16 @@ export default function ComplaintPage() {
                       </span>
                     )}
                   </div>
-                  <StatusBadge status={item.status} />
+                  <Badge variant={
+                    item.status === "Resolved" ? "RESOLVED" :
+                    item.status === "In Progress" ? "SUBMITTED" : "default"
+                    
+                  } >
+                      {item.status === "Resolved" && <CheckCircle2 data-icon="inline-start" className="h-3 w-3"/>}
+                      {item.status === "In Progress" && <Loader2 data-icon="inline-start" className="h-3 w-3 animate-spin"/>}
+                      {item.status === "Pending" && <Clock data-icon="inline-start" className="h-3 w-3"/>}
+                      {item.status}
+                  </Badge>
                 </div>
 
                 <p className="text-gray-800 text-sm mb-3 leading-relaxed">{item.description}</p>

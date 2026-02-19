@@ -95,11 +95,11 @@ const getCard = asyncHandler(async(req, res)=>{
 
 const cardPreferences = asyncHandler(async(req, res)=>{
     const { isAutoBookingEnabled } = req.body;
-    if(!isAutoBookingEnabled){
-        throw new ApiError(400, "All fields are required");
+  
+    if(!req?.user?.isCardHolder){
+        return;
     }
-
-    const card = await Card.findById(req.user.cardNumber._id);
+    const card = await Card.findById(req?.user?.cardNumber?._id);
     if(!card){
         throw new ApiError(404, "Not found");
     }

@@ -1,18 +1,6 @@
-import { AlertCircle, CheckCircle2, Clock, Coffee, Loader2, Moon, Sun } from "lucide-react";
+import { MealToken, MenuItem } from "@/types/common";
+import { AlertCircle, CheckCircle2, Clock, Coffee, Moon, Sun } from "lucide-react";
 
-interface MenuItem {
-  _id: string;
-  mealType: number;
-  items: string;
-  price: number;
-}
-
-interface MealToken {
-  _id: string;
-  mealType: number;
-  status: "BOOKED" | "REDEEMED" | "CANCELLED";
-  qrCode: string;
-}
 
 interface MealCardProps {
   type: number;
@@ -120,9 +108,7 @@ export default function MealCard({ type, menuItem, token, isPast, onBook, onCanc
                 : "bg-red-600 text-white hover:bg-red-700 active:scale-95 shadow-md"
             }`}
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : isPast ? (
+            {isPast ? (
               "Closed"
             ) : (
               "Cancel"
@@ -142,9 +128,7 @@ export default function MealCard({ type, menuItem, token, isPast, onBook, onCanc
                 : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-md"
             }`}
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : isBooked ? (
+            {isBooked ? (
               "Confirmed"
             ) : isPast ? (
               "Closed"

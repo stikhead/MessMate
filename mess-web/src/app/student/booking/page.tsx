@@ -8,50 +8,25 @@ import { useUser } from "@/hooks/useUser";
 import { UtensilsCrossed, History } from "lucide-react";
 import { CheckCircle2, Clock, Coffee, Moon, Sun, Calendar, XCircle } from "lucide-react";
 import MealCard from "@/components/student/MealCard";
+import { days } from "@/constants/index";
+import { MealToken, MenuItem, ToastState } from "@/types/common";
+import { Badge } from "@/components/ui/badge";
 
-interface MenuItem {
-  _id: string;
-  mealType: number;
-  items: string;
-  price: number;
-}
 
-interface MealToken {
-  _id: string;
-  mealType: number;
-  status: "BOOKED" | "REDEEMED" | "CANCELLED";
-  qrCode: string;
-  createdAt: string;
-  day?: number;
-}
 
-const DAYS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
+
+
 
 export default function BookMealPage() {
   const { user, refreshUser } = useUser();
-  const [selectedDate, setSelectedDate] = useState<"TODAY" | "TOMORROW">(
-    "TODAY"
-  );
-
+  const [selectedDate, setSelectedDate] = useState<"TODAY" | "TOMORROW">("TODAY");
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [tokens, setTokens] = useState<MealToken[]>([]);
   const [bookingHistory, setBookingHistory] = useState<MealToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState<number | null>(null);
-  const [toast, setToast] = useState<{
-    show: boolean;
-    msg: string;
-    type: "success" | "error";
-  } | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const getDayIndex = (offset: number) => {
     const d = new Date();
@@ -63,9 +38,9 @@ export default function BookMealPage() {
     if (selectedDate === "TOMORROW") return false;
 
     const h = new Date().getHours();
-    if (type === 1 && h >= 6) return true; // Breakfast ends at 10 AM
-    if (type === 2 && h >= 10) return true; // Lunch ends at 3 PM
-    if (type === 3 && h >= 18) return true; // Dinner ends at 10 PM
+    if (type === 1 && h >= 6) return true; 
+    if (type === 2 && h >= 10) return true; 
+    if (type === 3 && h >= 18) return true; 
     return false;
   };
 
@@ -95,7 +70,7 @@ export default function BookMealPage() {
       console.error(error);
       setToast({
         show: true,
-        msg: "Failed to load meal data",
+        message: "Failed to load meal data",
         type: "error",
       });
     } finally {
@@ -143,7 +118,7 @@ export default function BookMealPage() {
 
       setToast({
         show: true,
-        msg: "Meal cancelled successfully!",
+        message: "Meal cancelled successfully!",
         type: "success",
       });
 
@@ -151,10 +126,10 @@ export default function BookMealPage() {
       await fetchData();
       await fetchBookingHistory();
     } catch (error: unknown) {
-      const msg =
+      const message =
         (error as { response?: { data?: { message?: string } } })?.response
           ?.data?.message || "Cancellation failed";
-      setToast({ show: true, msg, type: "error" });
+      setToast({ show: true, message, type: "error" });
     } finally {
       setBookingLoading(null);
       
@@ -166,7 +141,7 @@ export default function BookMealPage() {
     if (user.currentBalance < price) {
       setToast({
         show: true,
-        msg: "Insufficient balance! Please recharge.",
+        message: "Insufficient balance! Please recharge.",
         type: "error",
       });
       return;
@@ -184,7 +159,7 @@ export default function BookMealPage() {
 
       setToast({
         show: true,
-        msg: "Meal booked successfully!",
+        message: "Meal booked successfully!",
         type: "success",
       });
 
@@ -192,10 +167,10 @@ export default function BookMealPage() {
       await fetchData();
       await fetchBookingHistory();
     } catch (error: unknown) {
-      const msg =
+      const message =
         (error as { response?: { data?: { message?: string } } })?.response
           ?.data?.message || "Booking failed";
-      setToast({ show: true, msg, type: "error" });
+      setToast({ show: true, message, type: "error" });
     } finally {
       setBookingLoading(null);
     }
@@ -311,7 +286,7 @@ export default function BookMealPage() {
 
       {toast && (
         <Toast
-          message={toast.msg}
+          message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
         />
@@ -363,7 +338,7 @@ function BookingHistoryRow({ booking }: { booking: MealToken }) {
 
   const getDayName = (dayNum?: number) => {
     if (dayNum === undefined) return "";
-    return DAYS[dayNum] || "";
+    return days[dayNum] || "";
   };
 
   const info = getMealInfo(booking.mealType);
@@ -393,33 +368,18 @@ function BookingHistoryRow({ booking }: { booking: MealToken }) {
         </p>
       </div>
 
-      {/* Status Badge */}
       <div className="shrink-0">
-        <StatusBadge status={booking.status} />
+        <Badge variant={
+          booking.status === "BOOKED" ? "BOOKED" :
+          booking.status === "CANCELLED" ? "CANCELLED" : "REDEEMED"
+        }
+        >
+          {booking.status === "BOOKED" && <Clock data-icon="inline-start" className="h-3 w-3" /> }
+          {booking.status === "CANCELLED" && <XCircle data-icon="inline-start" className="h-3 w-3" /> }
+          {booking.status === "REDEEMED" && <CheckCircle2 data-icon="inline-start" className="h-3 w-3" /> }
+          {booking.status}
+        </Badge>
       </div>
     </div>
-  );
-}
-
-
-function StatusBadge({ status }: { status: string }) {
-  if (status === "REDEEMED") {
-    return (
-      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-bold border border-green-200 uppercase tracking-wide">
-        <CheckCircle2 className="h-3 w-3" /> Redeemed
-      </span>
-    );
-  }
-  if (status === "CANCELLED") {
-    return (
-      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-600 text-[10px] font-bold border border-red-200 uppercase tracking-wide">
-        <XCircle className="h-3 w-3" /> Cancelled
-      </span>
-    );
-  }
-  return (
-    <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 uppercase tracking-wide">
-      <Clock className="h-3 w-3" /> Booked
-    </span>
   );
 }

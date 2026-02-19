@@ -5,24 +5,11 @@ import { useRouter } from "next/navigation";
 import API from "@/lib/api";
 import Cookies from "js-cookie";
 import { UtensilsCrossed, GraduationCap, ShieldCheck, User, Lock, HelpCircle, AlertCircle } from "lucide-react";
+import { LoginResponse, LoginFormData } from "@/types/common";
 
 type UserRole = "student" | "admin";
 
-interface FormData {
-  cardNumber: string;
-  password: string;
-}
 
-interface LoginResponse {
-  data: {
-    accessToken: string;
-    user: {
-      id: string;
-      role: string;
-      [key: string]: unknown;
-    };
-  };
-}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +17,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<LoginFormData>({
     cardNumber: "",
     password: "",
   });
@@ -56,8 +43,11 @@ export default function LoginPage() {
     try {
       const payload =
         activeTab === "student"
-          ? { email: formData.cardNumber, password: formData.password }
-          : { role: "admin", email: formData.cardNumber, password: formData.password,};
+          ? { email: formData.cardNumber,
+              password: formData.password }
+          : { role: "admin", 
+              email: formData.cardNumber,
+              password: formData.password };
 
       const res = await API.post<LoginResponse>("/users/login", payload);
       const { accessToken, user } = res.data.data;

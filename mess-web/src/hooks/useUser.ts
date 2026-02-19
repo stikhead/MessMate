@@ -59,6 +59,7 @@ export function useUser() {
           setUser(JSON.parse(stored));
         } catch (e) {
           localStorage.removeItem("user");
+          console.log(e)
         }
       }
 

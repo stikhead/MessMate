@@ -7,5 +7,5 @@ const router = Router();
 router.route("/create").post(verifyJWT, verifyAdmin, createCard);
 router.route("/recharge").post(verifyJWT, rechargeCard);
 router.route("/get").get(verifyJWT, getCard);
-router.route('/preferences').post(verifyJWT, cardPreferences)
+router.route('/preferences').patch(verifyJWT, cardPreferences)
 export default router;

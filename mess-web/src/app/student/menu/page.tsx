@@ -6,16 +6,10 @@ import API from "@/lib/api";
 import Navbar from "@/components/student/Navbar";
 import { Coffee, Sun, Moon, UtensilsCrossed, AlertCircle, Leaf } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-
-interface MenuItem {
-  mealType: number;
-  items: string;
-}
+import { days, SHORT_DAYS } from "@/constants";
+import { MenuItem } from "@/types/common";
 
 
-
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const fetcher = (url: string) =>
   API.get(url).then((res) => {
@@ -143,7 +137,7 @@ export default function WeeklyMenuPage() {
 
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            {DAYS[selectedDayIndex]}
+            {days[selectedDayIndex]}
           </h2>
           {isToday && (
             <span className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-sm">
@@ -252,7 +246,7 @@ export default function WeeklyMenuPage() {
                 No Menu Available
               </h3>
               <p className="text-gray-500 text-sm">
-                Menu for {DAYS[selectedDayIndex]} hasnt been uploaded yet.
+                Menu for {days[selectedDayIndex]} hasnt been uploaded yet.
               </p>
             </div>
           )}
