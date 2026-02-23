@@ -52,7 +52,6 @@ export function useUser() {
       try {
         const response = await API.get("/users/getCurrentUser");
         const freshData = response?.data?.data;
-
         if (isMounted && freshData) {
           const freshStringified = JSON.stringify(freshData);
           if (freshStringified !== stored) {

@@ -13,6 +13,7 @@ interface NavbarProps {
     roll_no?: string | null;
     currentBalance?: number | null;
     role?: string | null;
+    isCardHolder?: boolean | null;
   } | null | undefined;
 }
 
@@ -62,11 +63,12 @@ export default function Navbar({ user }: NavbarProps) {
           </div>
 
           <div className="hidden md:flex items-center gap-6">
+
             <NavLink href="/student/dashboard" icon={<CalendarDays className="h-4 w-4" />} label="Home" active={isActive("/student/dashboard")} />
             <NavLink href="/student/menu" icon={<UtensilsCrossed className="h-4 w-4" />} label="Menu" active={isActive("/student/menu")} />
             <NavLink href="/student/issues" icon={<MessageSquare className="h-4 w-4" />} label="Complaint" active={isActive("/student/issues")} />
             <NavLink href="/student/pay" icon={<LucideWallet className="h-4 w-4" />} label="Wallet" active={isActive("/student/pay")} />
-             <NavLink href="/student/booking" icon={<LucideForkKnifeCrossed className="h-4 w-4" />} label="Booking" active={isActive("/student/booking")} />
+            <NavLink href="/student/booking" icon={<LucideForkKnifeCrossed className="h-4 w-4" />} label="Booking" active={isActive("/student/booking")} />
           </div>
 
           <div className="flex items-center gap-3">
@@ -100,8 +102,8 @@ export default function Navbar({ user }: NavbarProps) {
             <MobileNavLink onClick={closeMenu} href="/student/menu" icon={<UtensilsCrossed className="h-4 w-4" />} label="Menu" active={isActive("/student/menu")} />
             <MobileNavLink onClick={closeMenu} href="/student/pay" icon={<LucideWallet className="h-4 w-4" />} label="Wallet" active={isActive("/student/pay")} />
             <MobileNavLink onClick={closeMenu} href="/student/issues" icon={<MessageSquare className="h-4 w-4" />} label="Complaint" active={isActive("/student/issues")} />
-              <MobileNavLink onClick={closeMenu} href="/student/booking" icon={<LucideForkKnifeCrossed className="h-4 w-4" />} label="Booking" active={isActive("/student/booking")} />
-            
+           
+  <MobileNavLink onClick={closeMenu} href="/student/booking" icon={<LucideForkKnifeCrossed className="h-4 w-4" />} label="Booking" active={isActive("/student/booking")} />
             <div className="pt-3 mt-2 border-t border-gray-100 px-2">
                <div className="flex justify-between items-center mb-3 bg-green-50 p-3 rounded-lg border border-green-100">
                   <span className="text-sm font-medium text-green-800">Available Balance</span>

@@ -18,12 +18,31 @@ API.interceptors.request.use((config) => {
 
 API.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
+  async (error) =>{
+    const orignalReq = error.config;
+  if(error?.response?.status === 401 && !orignalReq._retry){
+    orignalReq._retry = true;
+    try {
+       const res = await API.get("/users/refreshAccessToken");
+       const newAccessToken = res?.data.accessToken;
+
+       Cookies.set('accessToken', newAccessToken);
+       API.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`
+       
+       orignalReq.headers['Authorization'] =  `Bearer ${newAccessToken}`
+
+       return API(orignalReq);
+
+    } catch (error) {
+      
       Cookies.remove("accessToken");
       window.location.href = "/auth/login";
+    
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
+  }
+  return Promise.reject(error);
+   
   }
 );
 

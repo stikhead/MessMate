@@ -58,6 +58,7 @@ export interface MealToken {
     qrCode: string;
     createdAt: string;
     day?: number;
+    isEmergency?: boolean;
 }
 
 export interface UserStats {

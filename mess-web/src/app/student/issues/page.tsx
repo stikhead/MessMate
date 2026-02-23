@@ -68,19 +68,21 @@ export default function ComplaintPage() {
     keepPreviousData: true,
   });
 
-  const triggerToast = (message: string, type: "success" | "error") => {
-    setToast({ show: true, message, type });
-  };
+
 
   const handleSubmit = async () => {
     if (!description.trim()) {
-      triggerToast("Please describe the issue in the text box.", "error");
+       setToast({
+        show: true,
+        message: "Please describe the issue in the text box.",
+        type: "error",
+      });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const dayInt = dayMap[selectedDay];
+      const dayInt = dayMap[selectedDay] + 1;
       const mealTypeInt = mealMap[selectedMeal];
 
       const feedbackres = await API.post("/feedback/new", {
@@ -89,14 +91,22 @@ export default function ComplaintPage() {
         mealType: mealTypeInt,
         description: description,
       }).catch((err) => {
-            
-        triggerToast(err, "error");
+        setToast({
+        show: true,
+        message: "something went wrong",
+        type: "error",
+      });
       });
 
       setDescription("");
       mutate("/feedback/get");
       if (feedbackres) {
-        triggerToast("Complaint submitted successfully!", "success");
+        setToast({
+        show: true,
+        message: "Complaint submitted successfully!",
+        type: "success",
+      });
+        
       }
  
 
@@ -107,7 +117,11 @@ export default function ComplaintPage() {
       const axiosError = error as AxiosError<{ message: string }>;
       const errorMessage = axiosError.response?.data?.message || "Failed to submit complaint.";
 
-      triggerToast(errorMessage, "error");
+       setToast({
+        show: true,
+        message: errorMessage,
+        type: "success",
+      });
 
     } finally {
       setIsSubmitting(false);
@@ -121,7 +135,7 @@ export default function ComplaintPage() {
         <div className="flex h-screen items-center justify-center bg-gray-50">
           <div className="text-center">
             <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-            <p className="mt-4 text-gray-600">Loading Wallet...</p>
+            <p className="mt-4 text-gray-600">Loading issues...</p>
           </div>
         </div>
       </div>

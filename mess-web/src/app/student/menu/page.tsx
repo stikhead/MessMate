@@ -25,7 +25,7 @@ export default function WeeklyMenuPage() {
   const [selectedDayIndex, setSelectedDayIndex] = useState(new Date().getDay());
   const { user, loading: userLoading } = useUser()
 
-  const dayName = selectedDayIndex;
+  const dayName = selectedDayIndex+1;
 
   const { data: menu, error, isLoading } = useSWR<MenuItem[]>(
     `/menu/getMenu?day=${dayName}`,

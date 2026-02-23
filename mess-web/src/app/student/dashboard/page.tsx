@@ -197,11 +197,12 @@ export default function StudentDashboard() {
 
       <main className="w-full mx-auto max-w-6xl px-4 sm:px-6 py-6">
       <MessCard></MessCard>
-        <div className={`relative overflow-hidden rounded-2xl p-6 sm:p-8 text-white shadow-lg transition-colors duration-500 ${activeMeal.status === "SERVING"
+
+        <div className={`relative top-3 overflow-hidden rounded-2xl p-6 sm:p-8 text-white shadow-lg transition-colors duration-500 ${activeMeal.status === "SERVING"
           ? "bg-linear-to-br from-green-600 to-emerald-700"
           : "bg-linear-to-br from-blue-600 to-indigo-700"
           }`}>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3" />
+          <div className="absolute top-4 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3" />
 
           {activeMeal.meal ? (
             <div className="relative z-10">

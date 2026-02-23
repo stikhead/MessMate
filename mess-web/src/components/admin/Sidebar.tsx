@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import Cookies from "js-cookie";
-import { LayoutDashboard, Users, Inbox, UtensilsCrossed, Store, LogOut, Menu, X, QrCode } from "lucide-react";
+import { LayoutDashboard, Users, Inbox, UtensilsCrossed, Store, LogOut, Menu, X, QrCode, LucideChartArea } from "lucide-react";
 import API from "@/lib/api";
 
 interface AdminLayoutProps {
@@ -37,6 +37,7 @@ export default function AdminLayout({ user, children }: AdminLayoutProps) {
   const navItems = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
     { name: "Menu Control", icon: UtensilsCrossed, path: "/admin/menu-controller" },
+    { name: "Analytics", icon: LucideChartArea, path: "/admin/analytics" },
     { name: "Students", icon: Users, path: "/admin/students" },
     { name: "QR Code", icon: QrCode, path: "/admin/qrcode" },
     { name: "Smart Inbox", icon: Inbox, path: "/admin/inbox", badge: 4 },
