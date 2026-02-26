@@ -28,7 +28,7 @@ const registerUser = asyncHandler( async (req, res) => {
     const {fullName, email, password, roll_no, phoneNumber, role} = req.body;
 
     if(
-        [fullName, email, password, phoneNumber].some((field)=>{
+        [fullName, email, roll_no, password, phoneNumber].some((field)=>{
             return field?.trim() === "";
         }
         )
@@ -52,8 +52,8 @@ const registerUser = asyncHandler( async (req, res) => {
         email,
         password,
         phoneNumber,
-        role: role || 'student', 
-        roll_no: (role === 'student' && roll_no) ? roll_no : undefined
+        role: 'student', 
+        roll_no: roll_no
     })
     
     const createdUser = await User.findById(user._id).select(

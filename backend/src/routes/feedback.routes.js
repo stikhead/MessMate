@@ -1,13 +1,15 @@
 import { Router } from "express";
-import { verifyAdmin, verifyJWT } from "../middlewares/auth.middlewares.js";
-import { getFeedback, newFeedback, respondFeedback } from "../controllers/feedback.controller.js";
+import { newFeedback, respondFeedback, getFeedback, getAllFeedbacks } from "../controllers/feedback.controller.js";
+import { verifyJWT, verifyAdmin } from "../middlewares/auth.middlewares.js"; 
 
 const router = Router();
 
-router.route('/new').post(verifyJWT, newFeedback);
+router.route("/new").post(verifyJWT, newFeedback);
 
-router.route('/respond').post(verifyJWT, verifyAdmin, respondFeedback);
+router.route("/get").get(verifyJWT, getFeedback);
 
-router.route('/get').get(verifyJWT, getFeedback);
+router.route("/all").get(verifyJWT, verifyAdmin, getAllFeedbacks); 
+
+router.route("/respond").post(verifyJWT, verifyAdmin, respondFeedback); 
 
 export default router;

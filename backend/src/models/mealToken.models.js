@@ -31,7 +31,11 @@ const mealTokenSchema = new mongoose.Schema({
     cost: {
         type: Number,
         required: true 
-    }
+    },
+    isEmergency: {
+    type: Boolean,
+    default: false
+}
 }, { timestamps: true });
 
 mealTokenSchema.virtual('mealTypeName').get(function() {

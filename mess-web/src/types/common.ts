@@ -32,9 +32,7 @@ export interface Student {
   createdAt: string;
 }
 
-export interface AssignCardForm {
-  userId: string;
-}
+
 
 export interface MessCard {
   number: string;
@@ -52,6 +50,7 @@ export interface MenuItem {
 }
 
 export interface MealToken {
+    date: string | number | Date;
     _id: string;
     mealType: number;
     status: "BOOKED" | "REDEEMED" | "CANCELLED";
@@ -75,12 +74,12 @@ export interface LoginFormData {
 
 
 export interface RegisterFormData {
- fullName: string;
-    email: string;
-    roll_no: string;
-    password: string;
-    confirmPassword: string;
-    phoneNumber: string;
+ fullName?: string;
+    email?: string;
+    roll_no?: string;
+    password?: string;
+    confirmPassword?: string;
+    phoneNumber?: string;
 }
 
 export interface LoginResponse {
@@ -116,7 +115,7 @@ export interface Complaint {
   _id: string;
   category: string;
   day?: number;
-  mealType?: number;
+  meal: MealToken;
   description: string;
   status: "Pending" | "In Progress" | "Resolved";
   response?: string;
@@ -135,4 +134,75 @@ export interface MenuFormData {
   mealType: number;
   items: string;
   price: number;
+}
+
+
+interface TrendData {
+  date: string;
+  predicted: number;
+  ate: number;
+  wastage: number;
+  revenue: number;
+}
+
+export interface MonthlyData {
+  _id: string;
+  revenue: number;
+}
+
+export interface MetricCardProps {
+  title: string;
+  value: string;
+  icon: React.ReactNode; 
+  bg: string;
+}
+
+export interface AnalyticsData {
+  totalStudents: number;
+  predictedStudents: number;
+  studentsAte: number;
+  mealWastage: number;
+  todaysRevenue: number; 
+  expenditure: number;
+  trendData: TrendData[];
+  monthlyData: MonthlyData[]; 
+}
+
+
+export interface HeadcountStat {
+  meal: "Breakfast" | "Lunch" | "Dinner";
+  count: number;
+  revenue: number;
+}
+
+
+export interface PopulatedUser {
+  _id: string;
+  name: string;
+  email: string;
+  hostel?: string;
+  roomNo?: string;
+}
+
+export interface AdminComplaint {
+  _id: string;
+  user: PopulatedUser | string; 
+  category: string;
+  description: string;
+  status: string;
+  response?: string;
+  mealType?: number;
+  meal?: { mealType?: number }; 
+  date?: string;
+  createdAt: string;
+}
+
+
+
+
+
+export interface ApiErrorResponse {
+  message: string; 
+  status?: number;
+  statusCode: number;
 }

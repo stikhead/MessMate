@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import API from "@/lib/api";
 import Navbar from "@/components/student/Navbar";
 import Toast from "@/components/student/Toast";
@@ -12,12 +11,15 @@ import { days } from "@/constants/index";
 import { MealToken, MenuItem, ToastState } from "@/types/common";
 import { Badge } from "@/components/ui/badge";
 import MealCard from "@/components/student/MealCard";
+import { getErrorMessage } from "@/lib/error-handler";
 
-
-
-// --- MAIN PAGE ---
 export default function BookMealPage() {
   const { user, refreshUser } = useUser();
+
+  const isCardHolder = !!user?.isCardHolder;
+
+  const [mainTab, setMainTab] = useState<"BOOKING" | "HISTORY">("BOOKING");
+
   const [selectedDate, setSelectedDate] = useState<"TODAY" | "TOMORROW">("TODAY");
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [tokens, setTokens] = useState<MealToken[]>([]);
@@ -28,8 +30,11 @@ export default function BookMealPage() {
   const [bookingLoading, setBookingLoading] = useState<number | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
 
-  const isCardHolder = !!user?.isCardHolder;
-
+  useEffect(() => {
+    if (isCardHolder) {
+      setMainTab("HISTORY");
+    }
+  }, [isCardHolder]);
 
   useEffect(() => {
     if (isCardHolder && selectedDate === "TODAY") {
@@ -53,7 +58,7 @@ export default function BookMealPage() {
     return false;
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const dayOffset = selectedDate === "TODAY" ? 0 : 1;
@@ -78,9 +83,9 @@ export default function BookMealPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDate]);
 
-  const fetchBookingHistory = async () => {
+  const fetchBookingHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
       const res = await API.get("/meal/get-token");
@@ -97,15 +102,17 @@ export default function BookMealPage() {
     } finally {
       setHistoryLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [selectedDate]);
+    if (!isCardHolder && mainTab === "BOOKING") {
+      fetchData();
+    }
+  }, [fetchData, isCardHolder, mainTab]);
 
   useEffect(() => {
     fetchBookingHistory();
-  }, []);
+  }, [fetchBookingHistory]);
 
   const handleCancel = async (mealType: number) => {
     try {
@@ -118,9 +125,10 @@ export default function BookMealPage() {
       await refreshUser();
       await fetchData();
       await fetchBookingHistory();
-    } catch (error: any) {
-      setToast({ show: true, message: error.response?.data?.message || "Cancellation failed", type: "error" });
-    } finally {
+    }  catch (error) {
+       const message = getErrorMessage(error, "Failed to submit response");
+       setToast({ show: true, message, type: "error" }); 
+     } finally {
       setBookingLoading(null);
     }
   }
@@ -144,151 +152,181 @@ export default function BookMealPage() {
       await refreshUser();
       await fetchData();
       await fetchBookingHistory();
-    } catch (error: any) {
-      setToast({ show: true, message: error.response?.data?.message || "Booking failed", type: "error" });
+    }  catch (error) {
+       const message = getErrorMessage(error, "Failed to submit response");
+      setToast({ show: true, message, type: "error" });
     } finally {
       setBookingLoading(null);
     }
   };
 
+  const displayedHistory = isCardHolder 
+    ? bookingHistory 
+    : bookingHistory.filter(b => historyTab === "EMERGENCY" ? b.isEmergency : !b.isEmergency);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
 
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 pb-24 space-y-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <UtensilsCrossed className="h-6 w-6 sm:h-7 sm:w-7 text-blue-600" />
-              {isCardHolder ? "Emergency Re-book" : "Book Your Meal"}
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">
-              {isCardHolder ? "Revive a cancelled meal for tomorrow." : "Select a meal to reserve your spot."}
-            </p>
-          </div>
-
-          <div className="bg-white p-1 rounded-xl border border-gray-200 shadow-sm flex">
-            {!isCardHolder && (
-              <button
-                onClick={() => setSelectedDate("TODAY")}
-                className={`px-5 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                  selectedDate === "TODAY" ? "bg-blue-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                Today
-              </button>
-            )}
-            <button
-              onClick={() => setSelectedDate("TOMORROW")}
-              className={`px-5 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                selectedDate === "TOMORROW" ? "bg-blue-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              Tomorrow
-            </button>
-          </div>
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 pb-24 space-y-6 sm:space-y-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight mb-2">
+            {isCardHolder 
+              ? "Booking History" 
+              : mainTab === "BOOKING" ? "Book Your Meal" : "Booking History"}
+          </h1>
+          <p className="text-sm text-gray-500">
+            {isCardHolder 
+              ? "View your past meal consumptions and cancellations."
+              : mainTab === "BOOKING" 
+                ? "Select a meal to reserve your spot." 
+                : "View your past meal bookings, consumptions, and cancellations."}
+          </p>
         </div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-80 bg-white border border-gray-200 rounded-2xl animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
-            {[1, 2, 3].map((type) => (
-              <MealCard
-                key={type}
-                type={type}
-                menuItem={menu.find((m) => m?.mealType === type)}
-                token={tokens.find((t) => t.mealType === type)}
-                isPast={isMealPast(type)}
-                onBook={handleBook}
-                onCancel={handleCancel}
-                loading={bookingLoading === type}
-                isCardHolder={isCardHolder} // Passed down to shape the UI
-              />
-            ))}
+        {!isCardHolder && (
+          <div className="flex p-1.5 bg-gray-200/60 rounded-xl shadow-inner max-w-md">
+            <button
+              onClick={() => setMainTab("BOOKING")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 ${
+                mainTab === "BOOKING"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+              }`}
+            >
+              <UtensilsCrossed className="h-4 w-4" />
+              Book Meal
+            </button>
+            <button
+              onClick={() => setMainTab("HISTORY")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 ${
+                mainTab === "HISTORY"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+              }`}
+            >
+              <History className="h-4 w-4" />
+              History
+            </button>
           </div>
         )}
 
-        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200">
-          <h2 className="text-base font-bold text-gray-900 mb-5 flex items-center gap-2">
-            <History className="h-5 w-5 text-gray-400" />
-            Booking History
-          </h2>
-
-          <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-              <History className="h-5 w-5 text-gray-400" />
-              History Log
-            </h2>
-
-            {/* NEW: Tab Switcher for History */}
-            <div className="flex bg-gray-100 p-1 rounded-lg">
-              <button
-                onClick={() => setHistoryTab("REGULAR")}
-                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                  historyTab === "REGULAR" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Regular
-              </button>
-              <button
-                onClick={() => setHistoryTab("EMERGENCY")}
-                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                  historyTab === "EMERGENCY" ? "bg-orange-500 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Emergency
-              </button>
+        {!isCardHolder && mainTab === "BOOKING" && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
+            
+            <div className="flex justify-end">
+              <div className="bg-white p-1 rounded-xl border border-gray-200 shadow-sm flex">
+                <button
+                  onClick={() => setSelectedDate("TODAY")}
+                  className={`px-5 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                    selectedDate === "TODAY" ? "bg-blue-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Today
+                </button>
+                <button
+                  onClick={() => setSelectedDate("TOMORROW")}
+                  className={`px-5 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                    selectedDate === "TOMORROW" ? "bg-blue-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Tomorrow
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="overflow-y-auto max-h-73 space-y-3 pr-1">
-            {historyLoading ? (
-              [1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-xl animate-pulse">
-                  <div className="h-10 w-10 rounded-full bg-gray-200 shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-36" />
-                    <div className="h-3 bg-gray-100 rounded w-24" />
-                  </div>
-                </div>
-              ))
-            ) : bookingHistory && bookingHistory.filter(b => historyTab === "EMERGENCY" ? b.isEmergency : !b.isEmergency).length > 0 ? (
-              
-              // Filter the history based on the active tab
-              bookingHistory
-                .filter(b => historyTab === "EMERGENCY" ? b.isEmergency : !b.isEmergency)
-                .map((booking) => (
-                  <BookingHistoryRow key={booking._id} booking={booking} />
-                ))
-
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-80 bg-white border border-gray-200 rounded-2xl animate-pulse" />
+                ))}
+              </div>
             ) : (
-              <div className="text-center py-10">
-                <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-gray-50 border border-gray-100 mb-3">
-                  {historyTab === "EMERGENCY" ? (
-                    <AlertCircle className="h-6 w-6 text-orange-400" />
-                  ) : (
-                    <History className="h-6 w-6 text-gray-400" />
-                  )}
-                </div>
-                <p className="text-sm font-semibold text-gray-700 mb-1">
-                  No {historyTab === "EMERGENCY" ? "Emergency " : ""}Bookings
-                </p>
-                <p className="text-xs text-gray-500">
-                  {historyTab === "EMERGENCY" 
-                    ? "You haven't made any last-minute re-books." 
-                    : "Your standard meal history will appear here."}
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+                {[1, 2, 3].map((type) => (
+                  <MealCard
+                    key={type}
+                    type={type}
+                    menuItem={menu.find((m) => m?.mealType === type)}
+                    token={tokens.find((t) => t.mealType === type)}
+                    isPast={isMealPast(type)}
+                    onBook={handleBook}
+                    onCancel={handleCancel}
+                    loading={bookingLoading === type}
+                    isCardHolder={isCardHolder}
+                  />
+                ))}
               </div>
             )}
           </div>
-        </div>
-        </div>
+        )}
+
+        {mainTab === "HISTORY" && (
+          <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <History className="h-5 w-5 text-gray-400" />
+                Token Log
+              </h2>
+
+              {!isCardHolder && (
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                  <button
+                    onClick={() => setHistoryTab("REGULAR")}
+                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                      historyTab === "REGULAR" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Regular
+                  </button>
+                  <button
+                    onClick={() => setHistoryTab("EMERGENCY")}
+                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                      historyTab === "EMERGENCY" ? "bg-orange-500 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Emergency
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="overflow-y-auto max-h-150 space-y-3 pr-1">
+              {historyLoading ? (
+                [1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl animate-pulse">
+                    <div className="h-10 w-10 rounded-full bg-gray-200 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-36" />
+                      <div className="h-3 bg-gray-100 rounded w-24" />
+                    </div>
+                  </div>
+                ))
+              ) : displayedHistory.length > 0 ? (
+                displayedHistory.map((booking) => (
+                  <BookingHistoryRow key={booking._id} booking={booking} />
+                ))
+              ) : (
+                <div className="text-center py-10">
+                  <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-gray-50 border border-gray-100 mb-3">
+                    {historyTab === "EMERGENCY" && !isCardHolder ? (
+                      <AlertCircle className="h-6 w-6 text-orange-400" />
+                    ) : (
+                      <History className="h-6 w-6 text-gray-400" />
+                    )}
+                  </div>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">
+                    No {!isCardHolder && historyTab === "EMERGENCY" ? "Emergency " : ""}Records Found
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Your meal history will appear here.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </main>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
@@ -296,7 +334,6 @@ export default function BookMealPage() {
   );
 }
 
-// --- BOOKING HISTORY ROW COMPONENT ---
 function BookingHistoryRow({ booking }: { booking: MealToken }) {
   const getMealInfo = (type: number) => {
     const configs = {
@@ -338,18 +375,14 @@ function BookingHistoryRow({ booking }: { booking: MealToken }) {
         </p>
       </div>
 
-      <div className="shrink-0">
-        <Badge variant={booking.status as any}>
+      <div className="shrink-0 flex flex-col items-end gap-1">
+        <Badge variant={booking.status}>
           {booking.status === "BOOKED" && <Clock data-icon="inline-start" className="h-3 w-3 mr-1" />}
           {booking.status === "CANCELLED" && <XCircle data-icon="inline-start" className="h-3 w-3 mr-1" />}
           {booking.status === "REDEEMED" && <CheckCircle2 data-icon="inline-start" className="h-3 w-3 mr-1" />}
           {booking.status}
         </Badge>
-        {booking.isEmergency && (
-           <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-md">
-             EMERGENCY
-           </span>
-        )}
+
       </div>
     </div>
   );

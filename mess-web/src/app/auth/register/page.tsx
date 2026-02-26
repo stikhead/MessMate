@@ -7,6 +7,7 @@ import API from "@/lib/api";
 import { User, Mail, Lock, Hash, Loader2, ArrowRight, UtensilsCrossed } from "lucide-react";
 import Toast from "@/components/student/Toast"; 
 import { RegisterFormData } from "@/types/common";
+import { getErrorMessage } from "@/lib/error-handler";
 
 
 export default function RegisterPage() {
@@ -34,7 +35,7 @@ export default function RegisterPage() {
       setToast({ show: true, message: "Passwords do not match!", type: "error" });
       return;
     }
-    if (formData.password.length < 6) {
+    if ((formData?.password?.length || 0) < 6) {
       setToast({ show: true, message: "Password must be at least 6 characters.", type: "error" });
       return;
     }
@@ -60,15 +61,10 @@ export default function RegisterPage() {
         router.push("/auth/login");
       }, 1500);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Registration Error:", error);
-      const msg = error.response?.data?.message || "Registration failed. Please try again.";
-      setToast({ 
-        show: true, 
-        message: msg, 
-        type: "error" 
-      });
+    } catch (error) {
+        const message = getErrorMessage(error, "Failed to submit response");
+        setToast({ show: true, message, type: "error" });
+        
     } finally {
       setLoading(false);
     }

@@ -78,16 +78,18 @@ const rechargeCard = asyncHandler(async(req, res)=>{
 })
 
 const getCard = asyncHandler(async(req, res)=>{
-    const card = await Card.findById(req.user?.cardNumber._id)
-    if(!card){
-        throw new ApiError(404, "Not found");
+    if(req?.user.cardNumber?._id){
+        const card = await Card.findById(req.user?.cardNumber._id)
+        if(!card){
+            throw new ApiError(404, "Not found");
+        }
+    
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(200, card, "Success")
+        )
     }
-
-    return res
-    .status(200)
-    .json(
-        new ApiResponse(200, card, "Success")
-    )
 })
 
 
@@ -115,4 +117,26 @@ const cardPreferences = asyncHandler(async(req, res)=>{
 
 })
 
-export {createCard, rechargeCard, getCard, cardPreferences};
+const revokeCard = asyncHandler(async(req, res) => {
+    const { userID } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+        userID,
+        { isCardHolder: false },
+        { new: true }
+    );
+
+    if (!user) throw new ApiError(404, "User not found");
+
+
+    const card = await Card.findOneAndUpdate(
+        { user: userID, isActive: 'ACTIVE' }, 
+        { isActive: 'INACTIVE' },
+        { new: true }
+    );
+
+    return res.status(200).json(
+        new ApiResponse(200, {}, "Card revoked successfully")
+    );
+});
+export {createCard, rechargeCard, getCard, cardPreferences, revokeCard};

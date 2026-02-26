@@ -98,13 +98,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-linear-to-br from-blue-50 to-indigo-100">
-      {/* LEFT PANEL (Blue Side) - Hidden on Mobile */}
       <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-blue-600 via-blue-700 to-indigo-800 text-white p-12 flex-col justify-between relative overflow-hidden">
-        {/* Decorative Elements */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
-        {/* Logo Area */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl">
@@ -116,8 +113,6 @@ export default function LoginPage() {
             University Mess Management
           </p>
         </div>
-
-        {/* Feature List */}
         <div className="space-y-8 relative z-10">
           <div className="flex gap-4">
             <div className="shrink-0">
@@ -150,16 +145,13 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <p className="text-blue-200 text-sm relative z-10">
           © 2026 University Mess Management System
         </p>
       </div>
 
-      {/* RIGHT PANEL (White Side) - Interactive Form */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-md">
-          {/* Mobile Logo */}
           <div className="lg:hidden mb-8 text-center">
             <div className="inline-flex items-center gap-2 mb-2">
               <div className="p-2 bg-blue-600 rounded-lg">
@@ -170,7 +162,6 @@ export default function LoginPage() {
             <p className="text-gray-600 text-sm">University Mess Management</p>
           </div>
 
-          {/* Header */}
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
               Welcome Back
@@ -178,7 +169,6 @@ export default function LoginPage() {
             <p className="text-gray-600">Please login to access your account</p>
           </div>
 
-          {/* TAB SWITCHER */}
           <div className="bg-gray-100 p-1 rounded-lg mb-6 flex gap-1">
             <button
               type="button"
@@ -206,9 +196,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* FORM */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Error Message */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
@@ -217,7 +205,6 @@ export default function LoginPage() {
             )}
 
             {activeTab === "student" ? (
-              /* STUDENT FORM FIELDS */
               <>
                 <div>
                   <label
@@ -265,7 +252,6 @@ export default function LoginPage() {
 
               </>
             ) : (
-              /* ADMIN FORM FIELDS */
               <>
                 <div>
                   <label
@@ -324,21 +310,10 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo Info Box */}
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-blue-900 mb-1">
-              {activeTab === "student" ? "Demo:" : "Demo Credentials:"}
-            </p>
-            <p className="text-sm text-blue-700">
-              {activeTab === "student"
-                ? "Enter any roll number (e.g., 2024001) and select a hostel to login."
-                : "Username: admin | Password: admin123"}
-            </p>
-          </div>
+          
         </div>
       </div>
 
-      {/* Help Icon Float (Bottom Right) */}
       <button
         type="button"
         className="fixed bottom-6 right-6 p-4 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all focus:ring-4 focus:ring-blue-300"

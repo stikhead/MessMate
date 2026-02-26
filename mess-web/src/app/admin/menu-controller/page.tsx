@@ -4,14 +4,15 @@ import { useState } from "react";
 import { Save, Plus, Edit2, Trash2, Loader2, X, Calendar } from "lucide-react";
 import API from "@/lib/api";
 import Toast from "@/components/student/Toast";
-import { MenuFormData, MenuItem, ToastState } from "@/types/common";
+import { MenuFormData, MenuItem } from "@/types/common";
 import AdminLayout from "@/components/admin/Sidebar";
 import { useUser } from "@/hooks/useUser";
 import { days, MEAL_TYPES } from "@/constants";
 import { useFetchMenu } from "@/hooks/fetchMenu";
+import { getErrorMessage } from "@/lib/error-handler";
 
 export default function MenuControlPage() {
-  const [toast, setToast] = useState<ToastState | null>(null);
+  const [toast, setToast] = useState<{ show: boolean; msg: string; type: "success" | "error" } | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +59,7 @@ export default function MenuControlPage() {
     if (!formData.items.trim()) {
       setToast({
         show: true,
-        message: "Please enter menu items",
+        msg: "Please enter menu items",
         type: "error",
       });
       return;
@@ -70,7 +71,7 @@ export default function MenuControlPage() {
         await API.put(`/menu/update/?id=${editingItem._id}&items=${formData.items}`);
         setToast({
           show: true,
-          message: "Menu updated successfully",
+          msg: "Menu updated successfully",
           type: "success",
         });
       } else {
@@ -78,23 +79,16 @@ export default function MenuControlPage() {
         await API.post("/menu/add", formData);
         setToast({
           show: true,
-          message: "Menu item added successfully",
+          msg: "Menu item added successfully",
           type: "success",
         });
       }
       closeModal();
       refreshMenu();
-    } catch (error: unknown) {
-      const msg = ( error as {
-        response?: { 
-          data?: { 
-            message?: string 
-          } 
-        } 
-      }
-    )?.response?.data?.message || "Operation failed";
-      setToast({ show: true, message: msg, type: "error" });
-    } finally {
+    } catch (error) {
+  const msg = getErrorMessage(error, "Failed to submit response");
+  setToast({ show: true, msg, type: "error" });
+} finally {
       setSubmitting(false);
     }
   };
@@ -107,7 +101,7 @@ export default function MenuControlPage() {
       await API.delete(`/menu/delete/?id=${id}`);
       setToast({
         show: true,
-        message: "Meal deleted successfully",
+        msg: "Meal deleted successfully",
         type: "success",
       });
 
@@ -117,7 +111,7 @@ export default function MenuControlPage() {
       console.log(error)
       setToast({ 
         show: true, 
-        message: "Failed to delete meal", 
+        msg: "Failed to delete meal", 
         type: "error" 
       });
     }
@@ -484,7 +478,7 @@ export default function MenuControlPage() {
 
       {toast && (
         <Toast
-          message={toast.message}
+          message={toast.msg}
           type={toast.type}
           onClose={() => setToast(null)}
         />

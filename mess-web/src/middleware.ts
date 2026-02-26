@@ -9,7 +9,12 @@ export function middleware(request: NextRequest) {
   const isPublicPath = path === '/auth/login' || path === '/auth/signup'
   const isProtectedPath = path.startsWith('/admin') || path.startsWith('/student')
 
-  
+ if (path === '/') {
+    if (token) {
+     return NextResponse.redirect(new URL('/student/dashboard', request.url));
+    }
+    return NextResponse.redirect(new URL('/auth/login', request.url));
+  }
   if (token && isPublicPath) {
     return NextResponse.redirect(new URL('/student/dashboard', request.url))
   }
@@ -25,5 +30,6 @@ export const config = {
     '/auth/signup',
     '/admin/:path*',
     '/student/:path*',
+    '/:path*'
   ],
 }

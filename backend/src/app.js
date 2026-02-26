@@ -29,6 +29,7 @@ import menuRouter from "./routes/menu.routes.js";
 import walletRouter from "./routes/wallet.routes.js";
 import feebackRouter from "./routes/feedback.routes.js";
 import cardRouter from "./routes/card.routes.js";
+import analyticRouter from "./routes/analytics.routes.js";
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/menu", menuRouter);
@@ -36,5 +37,6 @@ app.use("/api/v1/meal", mealRouter);
 app.use("/api/v1/wallet", walletRouter);
 app.use('/api/v1/feedback', feebackRouter);
 app.use('/api/v1/cards', cardRouter)
+app.use('/api/v1/analytics', analyticRouter)
 
 export default app;

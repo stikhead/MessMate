@@ -43,7 +43,10 @@ const bookMeal = asyncHandler(async(req, res)=>{
         throw new ApiError(500, "Server Error")
     }    
     const bookingDate = await calculateActualDate(day, 2);
-
+    const isPastDeadline = await deadLineCalculate(bookingDate, mealType);
+    if(isPastDeadline){
+        throw new ApiError(400, "Booking deadline has passed for this meal");
+    }
     const existingBooking = await MealToken.findOne({
         student: req.user?._id,
         date: bookingDate,
@@ -52,8 +55,31 @@ const bookMeal = asyncHandler(async(req, res)=>{
 
     
     if(existingBooking){
-        if(existingBooking.status === 'BOOKED'){
+        if(existingBooking.status === 'BOOKED' || existingBooking.status === 'REDEEMED'){
             throw new ApiError(409, "Already Booked")
+        }
+
+        if (existingBooking.status === 'CANCELLED') {
+            if(req.user.currentBalance < menuItem.price){
+                throw new ApiError(402, "Insufficient balance to re-book this meal");
+            }
+            
+            req.user.currentBalance -= menuItem.price;
+            await req.user.save({validateBeforeSave: false});
+
+            existingBooking.status = 'BOOKED';
+            existingBooking.isEmergency = true;
+            await existingBooking.save();
+
+            await Transaction.create({
+                user: req.user._id,
+                amount: menuItem.price,
+                transactionType: "debit",
+                description: `Emergency Re-book: ${menuItem.items}`,
+                referenceId: existingBooking._id
+            });
+
+            return res.status(200).json(new ApiResponse(200, existingBooking, "Meal re-booked successfully"));
         }
     
     }
@@ -182,7 +208,7 @@ const getMyTokens = asyncHandler(async(req, res)=>{
 })
 
 const verifyMeal = asyncHandler(async(req, res)=>{
-    const {scannedPayload} = req.body;
+    const {scannedPayload} = req.query;
     
     const secret = process.env.QR_CODE_SECRET;
 
@@ -193,6 +219,8 @@ const verifyMeal = asyncHandler(async(req, res)=>{
         crypto.createHmac('sha256', secret).update(String(timeBlock - 1)).digest('hex')
     ];
 
+    console.log(validHashes)
+    console.log(scannedPayload)
     if(!validHashes.includes(scannedPayload)){
         throw new ApiError(400, "Invalid QR code")
     }
@@ -211,6 +239,7 @@ const verifyMeal = asyncHandler(async(req, res)=>{
         date: dateToday,
         mealType: mealType,
     })
+
 
     if(token && token.status === 'REDEEMED'){
         throw new ApiError(400, "Token already used || student already ate")
@@ -300,4 +329,82 @@ const getDailyHeadCount = asyncHandler(async(req, res)=>{
     );
 })
 
-export {bookMeal, cancelMeal, verifyMeal, getDailyHeadCount, getMyTokens, generateStaffQR}
+const bulkCancelMeals = asyncHandler(async(req, res) => {
+    const { startDate, endDate } = req.body;
+
+    if (!startDate || !endDate) {
+        throw new ApiError(400, "Start date and end date are required");
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    // start.setHours(0,0,0,0);
+    // Include the whole end day
+     const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    // NEW: Enforce the +1 day rule
+    if (start < tomorrow) {
+        throw new ApiError(400, "Cancellations must be made at least one day in advance.");
+    }
+    end.setHours(29, 29, 59, 999); 
+
+    const mealsToCancel = await MealToken.find({
+        student: req.user._id,
+        date: { $gte: start, $lte: end },
+        status: 'BOOKED'
+    });
+
+
+    
+    console.log(start)
+    
+    console.log(end)
+
+    console.log(mealsToCancel)
+    if (mealsToCancel.length === 0) {
+        throw new ApiError(404, "No booked meals found in this date range");
+    }
+
+    const totalRefund = mealsToCancel.reduce((sum, meal) => sum + meal.cost, 0);
+
+    req.user.currentBalance += totalRefund;
+    await req.user.save({ validateBeforeSave: false });
+
+    await MealToken.updateMany(
+        {
+            student: req.user._id,
+            date: { $gte: start, $lte: end },
+            status: 'BOOKED'
+        },
+        { $set: { status: 'CANCELLED' } }
+    );
+
+    await Transaction.create({
+        user: req.user._id,
+        amount: totalRefund, 
+        transactionType: "credit",
+        description: `Bulk Refund for Cancelled Meals (${start.toLocaleDateString()} to ${end.toLocaleDateString()})`,
+        referenceId: mealsToCancel[0]._id
+    });
+
+    return res.status(200).json(
+        new ApiResponse(200, { cancelledCount: mealsToCancel.length, refunded: totalRefund }, "Leave applied and meals cancelled successfully")
+    );
+});
+
+const getQueueStatus = asyncHandler(async (req, res) => {
+    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
+
+    const recentScansCount = await MealToken.countDocuments({
+        status: 'REDEEMED',
+        updatedAt: { $gte: fifteenMinsAgo }
+    });
+
+    return res.status(200).json(
+        new ApiResponse(200, { count: recentScansCount }, "Queue status fetched")
+    );
+});
+
+export { bookMeal, cancelMeal, verifyMeal, getDailyHeadCount, getQueueStatus, getMyTokens, generateStaffQR, bulkCancelMeals };

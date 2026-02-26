@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { bookMeal, cancelMeal, generateStaffQR, getDailyHeadCount, getMyTokens, verifyMeal } from "../controllers/meal.controller.js";
+import { bookMeal, bulkCancelMeals, cancelMeal, getQueueStatus, generateStaffQR, getDailyHeadCount, getMyTokens, verifyMeal } from "../controllers/meal.controller.js";
 import { verifyAdmin, verifyJWT } from "../middlewares/auth.middlewares.js";
 
 const router = Router();
@@ -14,6 +14,13 @@ router.route("/verify").post(verifyJWT, verifyMeal);
 
 router.route("/analytics").get(getDailyHeadCount);
 
+router.route("/bulk-cancel").post(verifyJWT, bulkCancelMeals)
+
 router.route("/qrcode").get(verifyJWT, verifyAdmin, generateStaffQR)
+
+router.route("/queue-status").get(verifyJWT, getQueueStatus);
+
+
+router.route("/headcount").get(verifyJWT, getDailyHeadCount);
 export default router;
 

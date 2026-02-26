@@ -2,18 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import API from "@/lib/api";
-import { UtensilsCrossed, CalendarDays, Clock, Coffee, Sun, Moon, TrendingUp, Calendar, Wallet, LucideAlarmCheck } from "lucide-react";
+import { UtensilsCrossed, CalendarDays, Clock, Coffee, Sun, Moon, TrendingUp, Calendar, Wallet } from "lucide-react";
 
 import Navbar from "@/components/student/Navbar";
 import StatsCard from "@/components/student/statsCard";
 import MenuRow from "@/components/student/MenuRow";
 import Toast from "@/components/student/Toast";
 import { useUser } from "@/hooks/useUser";
+import LiveQueueCard from "@/components/student/LiveQueueCard"
 import MessCard from "@/components/student/MessCard";
 import { MEAL_SCHEDULE } from "@/constants";
 import { MealToken, MenuItem, ToastState, UserStats } from "@/types/common";
-
-
+import DailyMealStatusCard from "@/components/student/DailyMealStatusCard";
 
 function TimeUnit({ value, label }: { value: string; label: string }) {
   return (
@@ -28,18 +28,12 @@ function TimeUnit({ value, label }: { value: string; label: string }) {
   );
 }
 
-
-
-
-
-
-
 export default function StudentDashboard() {
-
   const { user, loading: userLoading } = useUser();
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mealToken, setMealToken] = useState<MealToken | null>(null);
+  
+  const [tokens, setTokens] = useState<MealToken[]>([]);
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const [timeLeft, setTimeLeft] = useState({
@@ -48,10 +42,10 @@ export default function StudentDashboard() {
     seconds: "00"
   });
 
-  const [stats] = useState<UserStats>({
-    mealsThisWeek: 18,
+  const [stats, setStats] = useState<UserStats>({
+    mealsThisWeek: 0,
     totalMeals: 21,
-    attendanceRate: 86
+    attendanceRate: 0
   });
 
   const [activeMeal, setActiveMeal] = useState<{
@@ -65,31 +59,19 @@ export default function StudentDashboard() {
     const currentHour = now.getHours();
 
     const findItem = (type: number) => menuItems.find(m => m?.mealType === type) || null;
-
     const slot = MEAL_SCHEDULE.find(s => currentHour >= s.start && currentHour < s.end);
 
     if (slot) {
-
       const target = new Date();
       target.setHours(slot.end, 0, 0, 0);
-
-      return {
-        meal: findItem(slot.type),
-        status: slot.status,
-        targetTime: target
-      };
+      return { meal: findItem(slot.type), status: slot.status, targetTime: target };
     }
 
     const target = new Date();
     target.setDate(target.getDate() + 1);
     target.setHours(8, 0, 0, 0);
 
-    return {
-      meal: findItem(1),
-      status: "UPCOMING" as const,
-      targetTime: target
-    };
-
+    return { meal: findItem(1), status: "UPCOMING" as const, targetTime: target };
   }, []);
 
   useEffect(() => {
@@ -99,27 +81,49 @@ export default function StudentDashboard() {
         const dayIndex = today.getDay();
 
         const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0`).catch(()=>null);
-
         const menuData = Array.isArray(menuRes?.data.data) ? menuRes?.data.data : [menuRes?.data.data];
         const validMenu = menuData.filter((item: MenuItem) => item !== null);
         setMenu(validMenu);
 
         const initialState = calculateMealState(validMenu);
         setActiveMeal(initialState);
+        const tokenRes = await API.get(`/meal/get-token`).catch(() => null);
+        const rawTokens = tokenRes?.data?.data;
+        const allTokens = Array.isArray(rawTokens) ? rawTokens : rawTokens ? [rawTokens] : [];
+        setTokens(allTokens);
 
+        const now = new Date();
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
+        
+        const oneWeekAgo = new Date(now);
+        oneWeekAgo.setDate(now.getDate() - 7);
 
-        if (initialState.meal) {
-          const mealTokenRes = await API.get(
-            `/meal/get-token?day=${dayIndex}&mealType=${initialState.meal.mealType}`
-          ).catch(() => null);
-          const rawData = mealTokenRes?.data?.data;
+        let mealsThisWeekCount = 0;
+        let attendedPast = 0;
+        let missedPast = 0;
 
-          if (Array.isArray(rawData)) {
-            setMealToken(rawData[0] || null);
-          } else {
-            setMealToken(rawData || null);
+        allTokens.forEach((t: MealToken) => {
+          const tDate = new Date(t.date);
+
+          if (tDate >= oneWeekAgo && tDate <= now && t.status === 'REDEEMED') {
+            mealsThisWeekCount++;
           }
-        }
+
+          if (tDate < todayStart) {
+            if (t.status === 'REDEEMED') attendedPast++;
+            if (t.status === 'BOOKED') missedPast++;
+          }
+        });
+
+        const totalPastMeals = attendedPast + missedPast;
+        const attendanceRate = totalPastMeals > 0 ? Math.round((attendedPast / totalPastMeals) * 100) : 0;
+
+        setStats({
+          mealsThisWeek: mealsThisWeekCount,
+          totalMeals: 21,
+          attendanceRate: attendanceRate
+        });
 
       } catch (error) {
         console.error("Dashboard Error:", error);
@@ -169,9 +173,9 @@ export default function StudentDashboard() {
   };
 
   const getMealTimeDisplay = (type: number) => {
-    if (type === 1) return "8:00 AM - 9:00 AM";
-    if (type === 2) return "1:00 PM - 2:00 PM";
-    if (type === 3) return "8:00 PM - 9:00 PM";
+    if (type === 1) return "8:00 AM - 10:00 AM";
+    if (type === 2) return "1:00 PM - 3:00 PM";
+    if (type === 3) return "8:00 PM - 10:00 PM";
     return "";
   };
 
@@ -180,10 +184,10 @@ export default function StudentDashboard() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar user={user} />
-        <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="flex h-[calc(100vh-4rem)] items-center justify-center bg-gray-50">
           <div className="text-center">
             <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-            <p className="mt-4 text-gray-600">Loading Dashboard...</p>
+            <p className="mt-4 text-gray-600 font-medium">Loading Dashboard...</p>
           </div>
         </div>
       </div>
@@ -195,8 +199,8 @@ export default function StudentDashboard() {
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
 
-      <main className="w-full mx-auto max-w-6xl px-4 sm:px-6 py-6">
-      <MessCard></MessCard>
+      <main className="w-full mx-auto max-w-6xl px-4 sm:px-6 py-6 pb-24">
+        <MessCard />
 
         <div className={`relative top-3 overflow-hidden rounded-2xl p-6 sm:p-8 text-white shadow-lg transition-colors duration-500 ${activeMeal.status === "SERVING"
           ? "bg-linear-to-br from-green-600 to-emerald-700"
@@ -228,7 +232,7 @@ export default function StudentDashboard() {
                   </div>
                 </div>
 
-                <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/20 shadow-lg">
+                <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/20 shadow-lg shrink-0">
                   {activeMeal.meal.mealType === 1 ? <Coffee className="h-7 w-7" />
                     : activeMeal.meal.mealType === 2 ? <Sun className="h-7 w-7" />
                       : <Moon className="h-7 w-7" />}
@@ -260,7 +264,9 @@ export default function StudentDashboard() {
                   <TimeUnit value={timeLeft.seconds} label="Secs" />
                 </div>
               </div>
-
+        {activeMeal.status === 'SERVING' ? ( <div className="gap-2 col-span-2 sm:col-span-1">
+               <LiveQueueCard />
+            </div>) : <div></div>}
             </div>
           ) : (
             <div className="relative z-10 flex flex-col items-center justify-center py-12 text-center">
@@ -271,17 +277,32 @@ export default function StudentDashboard() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <StatsCard title="Meals This Week" value={stats.mealsThisWeek} subValue={`/${stats.totalMeals}`} icon={<Calendar />} color="green" />
-          <StatsCard title="Attendance" value={`${stats.attendanceRate}%`} icon={<TrendingUp />} color="blue" />
-          <StatsCard title="Balance" value={`₹${user?.currentBalance || 0}`} icon={<Wallet />} color="orange" />
-          <StatsCard title="Status" value={mealToken?.status || "Not Booked"} icon={<LucideAlarmCheck />} color={mealToken ? "green" : "gray"} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          
+          <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="col-span-2 sm:col-span-1">
+              <StatsCard title="Meals This Week" value={stats.mealsThisWeek} subValue={`/${stats.totalMeals}`} icon={<Calendar />} color="green" />
+            </div>
+            
+            <div className="col-span-2 sm:col-span-1">
+              <StatsCard title="Attendance" value={`${stats.attendanceRate}%`} icon={<TrendingUp />} color="blue" />
+            </div>           
+            <div className="col-span-2 sm:col-span-1">
+              <StatsCard title="Wallet Balance" value={`₹${user?.currentBalance || 0}`} icon={<Wallet />} color="orange" />
+            </div>
+              
+          </div>
+          
+          <div className="lg:col-span-1">
+            <DailyMealStatusCard tokens={tokens} />
+          </div>
+
         </div>
 
         <div className="rounded-2xl bg-white p-5 sm:p-6 shadow-sm border border-gray-100 mt-6">
           <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-gray-400" />
-            Todays Complete Menu
+            Today&apos;s Complete Menu
           </h3>
 
           <div className="space-y-3">
