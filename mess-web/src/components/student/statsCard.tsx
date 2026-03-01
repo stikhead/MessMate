@@ -24,7 +24,7 @@ export default function StatsCard({ title, value, subValue, icon, color = "blue"
   const theme = colorMap[color];
 
   return (
-    <div className={`rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md ${className}`}>
+    <div className={`rounded-xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-md ${className}`}>
 
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-600">{title}</h3>

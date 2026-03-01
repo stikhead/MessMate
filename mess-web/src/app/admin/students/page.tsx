@@ -81,13 +81,13 @@ export default function StudentsPage() {
 
     setTogglingId(student._id);
     try {
-      await API.post("/cards/create", { userID: student._id });
+      // await API.post("/cards/create", { userID: student._id });
       setToast({
         show: true,
-        msg: `Card assigned to ${student.fullName}. They must recharge it to activate.`,
-        type: "success",
+        msg: `Feature currently disabled`,
+        type: "error",
       });
-      await fetchStudents();
+      // await fetchStudents();
     } catch (error) {
       const msg = getErrorMessage(error, "Failed to assign card");
       setToast({ show: true, msg, type: "error" });

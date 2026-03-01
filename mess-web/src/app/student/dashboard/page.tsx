@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import API from "@/lib/api";
-import { UtensilsCrossed, CalendarDays, Clock, Coffee, Sun, Moon, TrendingUp, Calendar, Wallet } from "lucide-react";
+import { UtensilsCrossed, CalendarDays, Clock, Coffee, Sun, Moon, TrendingUp, Calendar, Wallet, AlertCircle } from "lucide-react";
 
 import Navbar from "@/components/student/Navbar";
 import StatsCard from "@/components/student/statsCard";
@@ -32,7 +32,7 @@ export default function StudentDashboard() {
   const { user, loading: userLoading } = useUser();
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [tokens, setTokens] = useState<MealToken[]>([]);
   const [toast, setToast] = useState<ToastState | null>(null);
 
@@ -74,25 +74,25 @@ export default function StudentDashboard() {
     return { meal: findItem(1), status: "UPCOMING" as const, targetTime: target };
   }, []);
 
-useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const today = new Date();
-      
-        let dayIndex = today.getDay() + 1; 
-        if (dayIndex === 0) dayIndex = 7; 
 
-        const cacheBuster = new Date().getTime(); 
+        let dayIndex = today.getDay() + 1;
+        if (dayIndex === 0) dayIndex = 7;
 
-        const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0&t=${cacheBuster}`).catch(()=>null);
-        
+        const cacheBuster = new Date().getTime();
+
+        const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0&t=${cacheBuster}`).catch(() => null);
+
         const menuData = Array.isArray(menuRes?.data.data) ? menuRes?.data.data : [menuRes?.data.data];
         const validMenu = menuData.filter((item: MenuItem) => item !== null);
         setMenu(validMenu);
 
         const initialState = calculateMealState(validMenu);
         setActiveMeal(initialState);
-      
+
         const tokenRes = await API.get(`/meal/get-token?t=${cacheBuster}`).catch(() => null);
         const rawTokens = tokenRes?.data?.data;
         const allTokens = Array.isArray(rawTokens) ? rawTokens : rawTokens ? [rawTokens] : [];
@@ -100,7 +100,7 @@ useEffect(() => {
         const now = new Date();
         const todayStart = new Date(now);
         todayStart.setHours(0, 0, 0, 0);
-        
+
         const oneWeekAgo = new Date(now);
         oneWeekAgo.setDate(now.getDate() - 7);
 
@@ -117,7 +117,7 @@ useEffect(() => {
 
           if (tDate < todayStart) {
             if (t.status === 'REDEEMED') attendedPast++;
-            if (t.status === 'BOOKED' || t.status === 'EXPIRED') missedPast++; 
+            if (t.status === 'BOOKED' || t.status === 'EXPIRED') missedPast++;
           }
         });
 
@@ -198,6 +198,10 @@ useEffect(() => {
     );
   }
 
+  const missedMeals = tokens.filter((t) => t.status === "EXPIRED");
+  const missedCount = missedMeals.length;
+  const moneyLost = missedMeals.reduce((sum, token) => sum + (token.cost || 0), 0);
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -268,9 +272,9 @@ useEffect(() => {
                   <TimeUnit value={timeLeft.seconds} label="Secs" />
                 </div>
               </div>
-        {activeMeal.status === 'SERVING' ? ( <div className="gap-2 col-span-2 sm:col-span-1">
-               <LiveQueueCard />
-            </div>) : <div></div>}
+              {activeMeal.status === 'SERVING' ? (<div className="gap-2 col-span-2 sm:col-span-1">
+                <LiveQueueCard />
+              </div>) : <div></div>}
             </div>
           ) : (
             <div className="relative z-10 flex flex-col items-center justify-center py-12 text-center">
@@ -282,21 +286,36 @@ useEffect(() => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-          
+
           <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="col-span-2 sm:col-span-1">
               <StatsCard title="Meals This Week" value={stats.mealsThisWeek} subValue={`/${stats.totalMeals}`} icon={<Calendar />} color="green" />
             </div>
-            
+
             <div className="col-span-2 sm:col-span-1">
               <StatsCard title="Attendance" value={`${stats.attendanceRate}%`} icon={<TrendingUp />} color="blue" />
-            </div>           
+            </div>
             <div className="col-span-2 sm:col-span-1">
               <StatsCard title="Wallet Balance" value={`₹${user?.currentBalance || 0}`} icon={<Wallet />} color="orange" />
             </div>
-              
+            <div className="col-span-2 sm:col-span-3">
+              {missedCount > 0 ? (
+                <div className="mt-6 flex items-center gap-3 bg-red-50 py-12 px-8 rounded-xl border border-red-100 relative z-10">
+                  <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                  <p className="text-xs font-medium text-red-900 leading-relaxed">
+                    You have lost <strong>₹{moneyLost}</strong> due to missed meals this cycle. Remember to cancel your bookings 2 hours in advance to get an instant refund!
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-6 bg-green-50 py-6 px-4 rounded-xl border border-green-100 relative z-10 text-center flex items-center justify-center">                  <p className="text-xs font-bold text-green-700">
+                  🎉 Perfect Streak! Zero meals wasted.
+                </p>
+
+                </div>
+              )}
+            </div>
           </div>
-          
+
           <div className="lg:col-span-1">
             <DailyMealStatusCard tokens={tokens} />
           </div>
