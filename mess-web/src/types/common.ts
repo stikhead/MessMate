@@ -7,8 +7,10 @@ export interface ToastState {
 }
 
 export interface UserProfile {
+  phone: string;
   fullName: string;
   roll_no: string;
+  email: string;
   currentBalance: number;
   role: string;
   cardNumber: MessCard;
@@ -20,15 +22,11 @@ export interface Student {
   fullName: string;
   roll_no: string;
   email: string;
-  phone?: string;
+  phoneNumber?: string;
   hostel?: string;
   currentBalance: number;
   isCardHolder: boolean;
-  cardNumber?: {
-    mealAmount?: number;
-    isActive?: "ACTIVE" | "INACTIVE";
-    isAutoBookingEnabled?: boolean;
-  };
+  cardNumber?: MessCard
   createdAt: string;
 }
 
@@ -39,6 +37,7 @@ export interface MessCard {
   mealAmount: number;
   isActive: string;
   isAutoBookingEnabled: boolean;
+  expiresAt: Date;
 }
 
 export interface MenuItem {
@@ -53,11 +52,12 @@ export interface MealToken {
     date: string | number | Date;
     _id: string;
     mealType: number;
-    status: "BOOKED" | "REDEEMED" | "CANCELLED";
+    status: "BOOKED" | "REDEEMED" | "CANCELLED" | "EXPIRED";
     qrCode: string;
     createdAt: string;
     day?: number;
     isEmergency?: boolean;
+    cost: number;
 }
 
 export interface UserStats {

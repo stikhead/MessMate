@@ -4,7 +4,7 @@ export const days = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 export const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const MEALS = ["Breakfast", "Lunch", "Dinner"];
-export const PLAN_COST = 2000;
+export const PLAN_COST = 500;
 export const PLAN_MEALS = 45;
 export const MEAL_SCHEDULE = [
   { type: 1, start: 8, end: 9, status: "SERVING" },

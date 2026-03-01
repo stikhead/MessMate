@@ -5,7 +5,7 @@ import API from "@/lib/api";
 import Navbar from "@/components/student/Navbar";
 import Toast from "@/components/student/Toast";
 import { useUser } from "@/hooks/useUser";
-import { UtensilsCrossed, History, AlertCircle } from "lucide-react";
+import { UtensilsCrossed, History, AlertCircle, LucideSlash } from "lucide-react";
 import { CheckCircle2, Clock, Coffee, Moon, Sun, Calendar, XCircle } from "lucide-react";
 import { days } from "@/constants/index";
 import { MealToken, MenuItem, ToastState } from "@/types/common";
@@ -42,33 +42,47 @@ export default function BookMealPage() {
     }
   }, [isCardHolder, selectedDate]);
 
-  const getDayIndex = (offset: number) => {
+  const getBookingDayIndex = (offset: number) => {
     const d = new Date();
     d.setDate(d.getDate() + offset);
-    return d.getDay();
+    return d.getDay(); 
   };
+
+  const getMenuDayIndex = (offset: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.getDay() + 1; 
+  };
+  
+  const getTargetDateStr = (offset: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.toLocaleDateString("en-CA");
+  }
 
   const isMealPast = (type: number) => {
     if (selectedDate === "TOMORROW") return false;
 
     const h = new Date().getHours();
-    if (type === 1 && h >= 6) return true; 
-    if (type === 2 && h >= 10) return true; 
-    if (type === 3 && h >= 18) return true; 
+    if (type === 1 && h >= 6) return true;
+    if (type === 2 && h >= 10) return true;
+    if (type === 3 && h >= 18) return true;
     return false;
   };
 
-  const fetchData = useCallback(async () => {
+ const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const dayOffset = selectedDate === "TODAY" ? 0 : 1;
-      const dayIndex = getDayIndex(dayOffset);
+      const menuDayIndex = getMenuDayIndex(dayOffset); 
+      const bookingDayIndex = getBookingDayIndex(dayOffset); 
+      const cacheBuster = new Date().getTime(); 
 
-      const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0`).catch(() => null);
+      const menuRes = await API.get(`/menu/getMenu?day=${menuDayIndex}&mealType=0&t=${cacheBuster}`).catch(() => null);
       const menuData = Array.isArray(menuRes?.data.data) ? menuRes?.data.data : [menuRes?.data.data];
       setMenu(menuData.filter((i: unknown) => i !== null));
 
-      const res = await API.get(`/meal/get-token?day=${dayIndex}`);
+      const res = await API.get(`/meal/get-token?day=${bookingDayIndex}&t=${cacheBuster}`);
       const fetchedTokens = res.data.data;
 
       if (Array.isArray(fetchedTokens)) {
@@ -88,7 +102,9 @@ export default function BookMealPage() {
   const fetchBookingHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      const res = await API.get("/meal/get-token");
+      const cacheBuster = new Date().getTime();
+      const res = await API.get(`/meal/get-token?t=${cacheBuster}`);
+
       const history = res.data.data;
       if (Array.isArray(history)) {
         setBookingHistory(history);
@@ -114,12 +130,13 @@ export default function BookMealPage() {
     fetchBookingHistory();
   }, [fetchBookingHistory]);
 
-  const handleCancel = async (mealType: number) => {
+const handleCancel = async (mealType: number) => {
     try {
       const dayOffset = selectedDate === "TODAY" ? 0 : 1;
-      const dayIndex = getDayIndex(dayOffset);
+      const bookingDayIndex = getBookingDayIndex(dayOffset);
+      const dateStr = getTargetDateStr(dayOffset);
 
-      await API.post("/meal/cancel", { mealType, day: dayIndex });
+      await API.post("/meal/cancel", { mealType, day: bookingDayIndex, date: dateStr });
       setToast({ show: true, message: "Meal cancelled successfully!", type: "success" });
 
       await refreshUser();
@@ -132,8 +149,7 @@ export default function BookMealPage() {
       setBookingLoading(null);
     }
   }
-
-  const handleBook = async (mealType: number, price: number) => {
+const handleBook = async (mealType: number, price: number) => {
     if (!user) return;
 
     if (user.currentBalance < price) {
@@ -144,9 +160,9 @@ export default function BookMealPage() {
     setBookingLoading(mealType);
     try {
       const dayOffset = selectedDate === "TODAY" ? 0 : 1;
-      const dayIndex = getDayIndex(dayOffset);
-
-      await API.post("/meal/book", { mealType, day: dayIndex });
+      const bookingDayIndex = getBookingDayIndex(dayOffset);
+      const dateStr = getTargetDateStr(dayOffset);
+      await API.post("/meal/book", { mealType, day: bookingDayIndex, date: dateStr });
       setToast({ show: true, message: "Meal booked successfully!", type: "success" });
 
       await refreshUser();
@@ -160,8 +176,8 @@ export default function BookMealPage() {
     }
   };
 
-  const displayedHistory = isCardHolder 
-    ? bookingHistory 
+  const displayedHistory = isCardHolder
+    ? bookingHistory
     : bookingHistory.filter(b => historyTab === "EMERGENCY" ? b.isEmergency : !b.isEmergency);
 
   return (
@@ -171,15 +187,15 @@ export default function BookMealPage() {
       <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 pb-24 space-y-6 sm:space-y-8">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight mb-2">
-            {isCardHolder 
-              ? "Booking History" 
+            {isCardHolder
+              ? "Booking History"
               : mainTab === "BOOKING" ? "Book Your Meal" : "Booking History"}
           </h1>
           <p className="text-sm text-gray-500">
-            {isCardHolder 
+            {isCardHolder
               ? "View your past meal consumptions and cancellations."
-              : mainTab === "BOOKING" 
-                ? "Select a meal to reserve your spot." 
+              : mainTab === "BOOKING"
+                ? "Select a meal to reserve your spot."
                 : "View your past meal bookings, consumptions, and cancellations."}
           </p>
         </div>
@@ -188,22 +204,20 @@ export default function BookMealPage() {
           <div className="flex p-1.5 bg-gray-200/60 rounded-xl shadow-inner max-w-md">
             <button
               onClick={() => setMainTab("BOOKING")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 ${
-                mainTab === "BOOKING"
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 ${mainTab === "BOOKING"
                   ? "bg-white text-blue-600 shadow-sm"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-              }`}
+                }`}
             >
               <UtensilsCrossed className="h-4 w-4" />
               Book Meal
             </button>
             <button
               onClick={() => setMainTab("HISTORY")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 ${
-                mainTab === "HISTORY"
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 ${mainTab === "HISTORY"
                   ? "bg-white text-blue-600 shadow-sm"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-              }`}
+                }`}
             >
               <History className="h-4 w-4" />
               History
@@ -213,22 +227,20 @@ export default function BookMealPage() {
 
         {!isCardHolder && mainTab === "BOOKING" && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
-            
+
             <div className="flex justify-end">
               <div className="bg-white p-1 rounded-xl border border-gray-200 shadow-sm flex">
                 <button
                   onClick={() => setSelectedDate("TODAY")}
-                  className={`px-5 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                    selectedDate === "TODAY" ? "bg-blue-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-50"
-                  }`}
+                  className={`px-5 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${selectedDate === "TODAY" ? "bg-blue-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-50"
+                    }`}
                 >
                   Today
                 </button>
                 <button
                   onClick={() => setSelectedDate("TOMORROW")}
-                  className={`px-5 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                    selectedDate === "TOMORROW" ? "bg-blue-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-50"
-                  }`}
+                  className={`px-5 sm:px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${selectedDate === "TOMORROW" ? "bg-blue-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-50"
+                    }`}
                 >
                   Tomorrow
                 </button>
@@ -273,17 +285,15 @@ export default function BookMealPage() {
                 <div className="flex bg-gray-100 p-1 rounded-lg">
                   <button
                     onClick={() => setHistoryTab("REGULAR")}
-                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                      historyTab === "REGULAR" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                    }`}
+                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${historyTab === "REGULAR" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      }`}
                   >
                     Regular
                   </button>
                   <button
                     onClick={() => setHistoryTab("EMERGENCY")}
-                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                      historyTab === "EMERGENCY" ? "bg-orange-500 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"
-                    }`}
+                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${historyTab === "EMERGENCY" ? "bg-orange-500 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      }`}
                   >
                     Emergency
                   </button>
@@ -351,7 +361,7 @@ function BookingHistoryRow({ booking }: { booking: MealToken }) {
 
   const getDayName = (dayNum?: number) => {
     if (dayNum === undefined) return "";
-    return days[dayNum] || "";
+    return days[dayNum - 1] || ""; 
   };
 
   const info = getMealInfo(booking.mealType);
@@ -380,6 +390,7 @@ function BookingHistoryRow({ booking }: { booking: MealToken }) {
           {booking.status === "BOOKED" && <Clock data-icon="inline-start" className="h-3 w-3 mr-1" />}
           {booking.status === "CANCELLED" && <XCircle data-icon="inline-start" className="h-3 w-3 mr-1" />}
           {booking.status === "REDEEMED" && <CheckCircle2 data-icon="inline-start" className="h-3 w-3 mr-1" />}
+          {booking.status === "EXPIRED" && <LucideSlash data-icon="inline-start" className="h-3 w-3 mr-1" />}
           {booking.status}
         </Badge>
 

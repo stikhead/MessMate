@@ -25,7 +25,7 @@ const generateAccessAndRefreshToken = async(userID)=>{
 }
 
 const registerUser = asyncHandler( async (req, res) => {
-    const {fullName, email, password, roll_no, phoneNumber, role} = req.body;
+    const {fullName, email, password, roll_no, phoneNumber} = req.body;
 
     if(
         [fullName, email, roll_no, password, phoneNumber].some((field)=>{
@@ -36,16 +36,21 @@ const registerUser = asyncHandler( async (req, res) => {
         throw new ApiError(400, "fullName, email, password and phoneNumber are required")
     }
 
-    const existingUser = await User.findOne(
-        {
-            $or: [{email}, {phoneNumber}]
+    const existingUser = await User.findOne({
+        $or: [{ email }, { roll_no }, { phoneNumber }]
+    });
+
+    if (existingUser) {
+        if (existingUser.email === email) {
+            throw new ApiError(409, "A user with this email already exists.");
         }
-    )
-
-    if(existingUser){
-        throw new ApiError(409, "User already exist");
+        if (existingUser.roll_no === roll_no) {
+            throw new ApiError(409, "This Roll Number is already registered.");
+        }
+        if (existingUser.phoneNumber === phoneNumber) {
+            throw new ApiError(409, "This Phone Number is already in use.");
+        }
     }
-
 
     const user = await User.create({
         fullName,
@@ -166,6 +171,7 @@ const getCurrentUser = asyncHandler(async(req, res)=>{
         throw new ApiError(401, "User not authenticated");
     }
 
+    
     return res.status(200).json(
         new ApiResponse(200, req.user, "fetched successfully")
     )
@@ -261,7 +267,7 @@ const getAllUsers = asyncHandler(async(req, res)=>{
         throw new ApiError(401, "missing perms");
     }
 
-    const users = await User.find();
+    const users = await User.find().populate('cardNumber');
 
     if(!users){
         throw new ApiError(404, "Not found");

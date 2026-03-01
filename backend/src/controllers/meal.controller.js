@@ -12,7 +12,7 @@ const deadLineCalculate = async(bookingDate, mealType)=>{
     
     let cutOfFHour = 10; // lunch - 1pm
     if(Number(mealType)===1) cutOfFHour = 6 // breakfast - 8am 
-    if(Number(mealType)===3) cutOfFHour = 17 // dinner - 8pm
+    if(Number(mealType)===3) cutOfFHour = 18 // dinner - 8pm
 
     deadline.setHours(cutOfFHour, 0, 0, 0)
 

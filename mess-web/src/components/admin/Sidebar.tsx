@@ -68,7 +68,7 @@ export default function AdminLayout({ user, children }: AdminLayoutProps) {
               <Link
                 key={item.name}
                 href={item.path}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors text-sm font-medium ${
+                className={`className="group flex items-center justify-between p-3.5 rounded-xl border border-gray-100 hover:border-orange-200 hover:bg-blue-50 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5"${
                   isActive 
                     ? "bg-blue-50 text-blue-700" 
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"

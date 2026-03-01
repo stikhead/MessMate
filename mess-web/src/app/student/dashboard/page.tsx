@@ -74,24 +74,29 @@ export default function StudentDashboard() {
     return { meal: findItem(1), status: "UPCOMING" as const, targetTime: target };
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
     const fetchData = async () => {
       try {
         const today = new Date();
-        const dayIndex = today.getDay();
+      
+        let dayIndex = today.getDay() + 1; 
+        if (dayIndex === 0) dayIndex = 7; 
 
-        const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0`).catch(()=>null);
+        const cacheBuster = new Date().getTime(); 
+
+        const menuRes = await API.get(`/menu/getMenu?day=${dayIndex}&mealType=0&t=${cacheBuster}`).catch(()=>null);
+        
         const menuData = Array.isArray(menuRes?.data.data) ? menuRes?.data.data : [menuRes?.data.data];
         const validMenu = menuData.filter((item: MenuItem) => item !== null);
         setMenu(validMenu);
 
         const initialState = calculateMealState(validMenu);
         setActiveMeal(initialState);
-        const tokenRes = await API.get(`/meal/get-token`).catch(() => null);
+      
+        const tokenRes = await API.get(`/meal/get-token?t=${cacheBuster}`).catch(() => null);
         const rawTokens = tokenRes?.data?.data;
         const allTokens = Array.isArray(rawTokens) ? rawTokens : rawTokens ? [rawTokens] : [];
         setTokens(allTokens);
-
         const now = new Date();
         const todayStart = new Date(now);
         todayStart.setHours(0, 0, 0, 0);
@@ -112,7 +117,7 @@ export default function StudentDashboard() {
 
           if (tDate < todayStart) {
             if (t.status === 'REDEEMED') attendedPast++;
-            if (t.status === 'BOOKED') missedPast++;
+            if (t.status === 'BOOKED' || t.status === 'EXPIRED') missedPast++; 
           }
         });
 
@@ -135,7 +140,6 @@ export default function StudentDashboard() {
 
     fetchData();
   }, [calculateMealState]);
-
 
   useEffect(() => {
     const timer = setInterval(() => {

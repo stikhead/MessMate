@@ -16,7 +16,7 @@ const getAnalyticsOverview = asyncHandler(async(req, res) => {
     targetDayEnd.setHours(0, 0, 0, 0);
 
     const targetStats = await MealToken.aggregate([
-        { $match: { date: { $gte: targetDayStart, $lt: targetDayEnd }, status: { $in: ['BOOKED', 'REDEEMED'] } } },
+        { $match: { date: { $gte: targetDayStart, $lt: targetDayEnd }, status: { $in: ['BOOKED', 'REDEEMED', 'EXPIRED'] } } },
         { $group: {
             _id: null,
             predictedStudents: { $sum: 1 },
@@ -32,7 +32,8 @@ const getAnalyticsOverview = asyncHandler(async(req, res) => {
     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
     
     const yesterdaysStats = await MealToken.aggregate([
-        { $match: { date: { $gte: yesterdayStart, $lt: targetDayStart }, status: { $in: ['BOOKED', 'REDEEMED'] } } },
+     
+        { $match: { date: { $gte: yesterdayStart, $lt: targetDayStart }, status: { $in: ['BOOKED', 'REDEEMED', 'EXPIRED'] } } },
         { $group: {
             _id: null,
             revenue: { $sum: "$cost" }
@@ -47,7 +48,7 @@ const getAnalyticsOverview = asyncHandler(async(req, res) => {
         { 
             $match: { 
                 date: { $gte: sevenDaysAgo, $lt: targetDayEnd }, 
-                status: { $in: ['BOOKED', 'REDEEMED'] } 
+                status: { $in: ['BOOKED', 'REDEEMED', 'EXPIRED'] } 
             } 
         },
         {
@@ -65,14 +66,15 @@ const getAnalyticsOverview = asyncHandler(async(req, res) => {
         date: new Date(day._id).toLocaleDateString('en-US', { weekday: 'short' }),
         predicted: day.predicted,
         ate: day.ate,
-        wastage: day.predicted - day.ate,
+        wastage: day.predicted - day.ate, 
         revenue: day.revenue
     }));
+
     const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
     const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0, 23, 59, 59, 999);
 
     const monthlyStats = await MealToken.aggregate([
-        { $match: { date: { $gte: startOfMonth, $lte: endOfMonth }, status: { $in: ['BOOKED', 'REDEEMED'] } } },
+        { $match: { date: { $gte: startOfMonth, $lte: endOfMonth }, status: { $in: ['BOOKED', 'REDEEMED', 'EXPIRED'] } } },
         { $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: "Asia/Kolkata" } }, 
             revenue: { $sum: "$cost" }

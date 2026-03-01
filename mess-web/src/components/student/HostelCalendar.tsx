@@ -1,29 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import {
-  Calendar as CalendarIcon,
-  Loader2,
-  Plane,
-  X,
-  Coffee,
-  Sun,
-  Moon,
-  Clock,
-  Check,
-  AlertCircle,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Calendar as CalendarIcon, Loader2, Plane, X, Coffee, Sun, Moon, Clock, Check, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import API from "@/lib/api";
 import Toast from "./Toast";
-
-// --- TYPES ---
-interface Token {
-  date: string;
-  mealType: number;
-  status: "BOOKED" | "REDEEMED" | "CANCELLED";
-}
+import { MealToken } from "@/types/common";
 
 interface DayDetailsModalProps {
   dateStr: string;
@@ -32,7 +13,6 @@ interface DayDetailsModalProps {
   refreshTokens: () => void;
 }
 
-// --- MODAL COMPONENT ---
 function DayDetailsModal({
   dateStr,
   dayTokens,
@@ -103,7 +83,7 @@ function DayDetailsModal({
   const checkDeadline = (startHour: number) => {
     const [year, month, day] = dateStr.split("-").map(Number);
     const mealTime = new Date(year, month - 1, day, startHour, 0, 0, 0);
-    const deadlineTime = mealTime.getTime() - 2 * 60 * 60 * 1000; 
+    const deadlineTime = mealTime.getTime() - 2 * 60 * 60 * 1000;
     return Date.now() > deadlineTime;
   };
 
@@ -161,23 +141,22 @@ function DayDetailsModal({
             const isBooked = status === "BOOKED" || status === "REDEEMED";
             const isPastDeadline = checkDeadline(meal.startHour);
             const isRedeemed = status === "REDEEMED";
+            const isExpired = status === "EXPIRED"; // Helper for expired
 
             return (
               <div
                 key={meal.type}
-                className={`relative overflow-hidden flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-                  isBooked
-                    ? "border-green-200 bg-green-50"
-                    : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
+                className={`relative overflow-hidden flex items-center justify-between p-4 rounded-xl border-2 transition-all ${isBooked
+                  ? "border-green-200 bg-green-50"
+                  : "border-gray-200 bg-white hover:border-gray-300"
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className={`p-2.5 rounded-xl ${
-                      isBooked
-                        ? `bg-green-100 text-${meal.color}-600`
-                        : `bg-${meal.color}-50 text-${meal.color}-600`
-                    }`}
+                    className={`p-2.5 rounded-xl ${isBooked
+                      ? `bg-green-100 text-${meal.color}-600`
+                      : `bg-${meal.color}-50 text-${meal.color}-600`
+                      }`}
                   >
                     {meal.icon}
                   </div>
@@ -192,16 +171,15 @@ function DayDetailsModal({
                       {isBooked && (
                         <Check className="h-3 w-3 text-green-600" />
                       )}
-                      <p
-                        className={`text-[10px] font-bold uppercase tracking-wider ${
-                          isBooked ? "text-green-600" : "text-gray-500"
-                        }`}
-                      >
+                      <p className={`text-[10px] font-extrabold uppercase tracking-wider ${isBooked ? "text-green-600" : isExpired ? "text-gray-500" : "text-gray-400"
+                        }`}>
                         {status === "NONE"
                           ? "Available"
                           : status === "REDEEMED"
-                          ? "Consumed"
-                          : status}
+                            ? "Consumed"
+                            : isExpired
+                              ? "Missed"
+                              : status}
                       </p>
                     </div>
                   </div>
@@ -214,20 +192,21 @@ function DayDetailsModal({
                     handleAction(meal.type, status);
                   }}
                   disabled={
-                    loading === meal.type || isRedeemed || isPastDeadline
+                    loading === meal.type || isRedeemed || isPastDeadline || isExpired
                   }
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all w-20 flex justify-center items-center ${
-                    isRedeemed || isPastDeadline
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : isBooked
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all w-20 flex justify-center items-center ${isRedeemed || isPastDeadline || isExpired
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : isBooked
                       ? "bg-red-500 text-white hover:bg-red-600 active:scale-95"
                       : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
-                  }`}
+                    }`}
                 >
                   {loading === meal.type ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : isRedeemed ? (
                     "Eaten"
+                  ) : isExpired ? (
+                    "Missed"
                   ) : isPastDeadline ? (
                     "Closed"
                   ) : isBooked ? (
@@ -255,8 +234,7 @@ function DayDetailsModal({
   );
 }
 
-// --- MAIN CALENDAR COMPONENT ---
-export default function HostelCalendar() {
+export default function HostelCalendar({ expiresAt }: { expiresAt?: string }) {
   const [loading, setLoading] = useState(false);
   const [fetchingTokens, setFetchingTokens] = useState(true);
   const [startDate, setStartDate] = useState("");
@@ -270,14 +248,12 @@ export default function HostelCalendar() {
   const [tokenMap, setTokenMap] = useState<Record<string, Record<number, string>>>({});
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
 
-  // --- CALENDAR STATE LOGIC ---
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
   const currentDay = today.getDate();
   const todayDateOnly = new Date(currentYear, currentMonth, currentDay);
 
-  // Manage which month is currently visible on the screen
   const [viewDate, setViewDate] = useState(new Date(currentYear, currentMonth, 1));
   const viewMonth = viewDate.getMonth();
   const viewYear = viewDate.getFullYear();
@@ -287,11 +263,13 @@ export default function HostelCalendar() {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minStartDate = tomorrow.toLocaleDateString("en-CA");
 
-  const monthly = new Date(today);
-  monthly.setDate(monthly.getDate() + 30);
-  const maxDate = monthly.toLocaleDateString("en-CA");
+  const expiryDateObj = expiresAt ? new Date(expiresAt) : new Date(new Date().setDate(today.getDate() + 30));
+  expiryDateObj.setHours(23, 59, 59, 999);
 
-  // Navigation Handlers
+  const maxDate = expiryDateObj.toLocaleDateString("en-CA");
+  const maxMonth = expiryDateObj.getMonth();
+  const maxYear = expiryDateObj.getFullYear();
+
   const handlePrevMonth = () => {
     setViewDate(new Date(viewYear, viewMonth - 1, 1));
   };
@@ -299,16 +277,14 @@ export default function HostelCalendar() {
     setViewDate(new Date(viewYear, viewMonth + 1, 1));
   };
 
-  // Limit bounds to prevent endless scrolling (Current Month <--> Next Month)
   const isCurrentMonth = viewMonth === currentMonth && viewYear === currentYear;
-  const nextMonthObj = new Date(currentYear, currentMonth + 1, 1);
-  const isMaxMonth = viewMonth === nextMonthObj.getMonth() && viewYear === nextMonthObj.getFullYear();
+  const isMaxMonth = viewYear > maxYear || (viewYear === maxYear && viewMonth >= maxMonth);
 
   const fetchMyTokens = useCallback(async () => {
     setFetchingTokens(true);
     try {
       const res = await API.get("/meal/get-token");
-      const tokens: Token[] = res.data.data;
+      const tokens: MealToken[] = res.data.data;
 
       const newMap: Record<string, Record<number, string>> = {};
 
@@ -365,7 +341,6 @@ export default function HostelCalendar() {
   return (
     <>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 mt-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 sm:h-12 sm:w-12 bg-linear-to-br from-blue-600 to-indigo-600 text-white rounded-xl flex items-center justify-center shadow-md">
@@ -375,11 +350,10 @@ export default function HostelCalendar() {
               <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                 Your Meal Schedule
               </h2>
-              {/* --- MONTH NAVIGATION CONTROLS --- */}
               <div className="flex items-center gap-2 mt-1">
-                <button 
-                  onClick={handlePrevMonth} 
-                  disabled={isCurrentMonth} 
+                <button
+                  onClick={handlePrevMonth}
+                  disabled={isCurrentMonth}
                   className={`p-1 rounded-md transition-colors ${isCurrentMonth ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-100"}`}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -387,9 +361,9 @@ export default function HostelCalendar() {
                 <span className="text-xs sm:text-sm font-semibold text-blue-600 min-w-25 text-center">
                   {getMonthName()}
                 </span>
-                <button 
-                  onClick={handleNextMonth} 
-                  disabled={isMaxMonth} 
+                <button
+                  onClick={handleNextMonth}
+                  disabled={isMaxMonth}
                   className={`p-1 rounded-md transition-colors ${isMaxMonth ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-100"}`}
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -406,9 +380,7 @@ export default function HostelCalendar() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Calendar Grid */}
           <div className="lg:col-span-2">
-            {/* Weekday Headers */}
             <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-xs font-bold text-gray-500">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                 <div key={day} className="py-2">
@@ -417,25 +389,23 @@ export default function HostelCalendar() {
               ))}
             </div>
 
-            {/* Calendar Days */}
             <div className="grid grid-cols-7 gap-1 sm:gap-2">
-              {/* Empty cells for days before month start */}
               {Array.from({
                 length: new Date(viewYear, viewMonth, 1).getDay(),
               }).map((_, i) => (
                 <div key={`empty-${i}`} className="p-2" />
               ))}
 
-              {/* Actual days */}
               {Array.from({ length: daysInViewMonth }).map((_, i) => {
                 const day = i + 1;
                 const cellDate = new Date(viewYear, viewMonth, day);
-                
-                // Compare with midnight today to determine if past/today
+
                 const isPast = cellDate.getTime() < todayDateOnly.getTime();
+                const isAfterExpiry = cellDate.getTime() > expiryDateObj.getTime();
+                const isDisabled = isPast || isAfterExpiry;
+
                 const isToday = cellDate.getTime() === todayDateOnly.getTime();
 
-                // Format exactly to local YYYY-MM-DD to match the map
                 const cellDateStr = cellDate.toLocaleDateString("en-CA");
                 const dayTokens = tokenMap[cellDateStr] || {};
                 const hasMeals = Object.keys(dayTokens).length > 0;
@@ -446,32 +416,29 @@ export default function HostelCalendar() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!isPast) setSelectedDateStr(cellDateStr);
+                      if (!isDisabled) setSelectedDateStr(cellDateStr);
                     }}
-                    disabled={isPast}
-                    className={`group relative flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl border-2 transition-all ${
-                      isToday
-                        ? "border-blue-600 bg-blue-50 shadow-sm"
-                        : isPast
+                    disabled={isDisabled}
+                    className={`group relative flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl border-2 transition-all ${isToday
+                      ? "border-blue-600 bg-blue-50 shadow-sm"
+                      : isDisabled
                         ? "border-gray-100 bg-gray-50 cursor-not-allowed opacity-50"
                         : hasMeals
-                        ? "border-green-200 bg-green-50 hover:border-green-300 hover:shadow-md cursor-pointer"
-                        : "border-gray-200 hover:border-blue-300 hover:shadow-md cursor-pointer hover:bg-blue-50"
-                    }`}
+                          ? "border-green-200 bg-green-50 hover:border-green-300 hover:shadow-md cursor-pointer"
+                          : "border-gray-200 hover:border-blue-300 hover:shadow-md cursor-pointer hover:bg-blue-50"
+                      }`}
                   >
                     <span
-                      className={`text-sm sm:text-base font-bold transition-colors ${
-                        isToday
-                          ? "text-blue-600"
-                          : isPast
+                      className={`text-sm sm:text-base font-bold transition-colors ${isToday
+                        ? "text-blue-600"
+                        : isDisabled
                           ? "text-gray-400"
                           : "text-gray-700 group-hover:text-blue-600"
-                      }`}
+                        }`}
                     >
                       {day}
                     </span>
 
-                    {/* Meal Indicators */}
                     <div className="flex gap-0.5 sm:gap-1 mt-1.5 h-1.5">
                       {[1, 2, 3].map((mealType) => {
                         const status = dayTokens[mealType];
@@ -480,19 +447,19 @@ export default function HostelCalendar() {
                         return (
                           <span
                             key={mealType}
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              status === "BOOKED" || status === "REDEEMED"
+                            className={`h-1.5 w-1.5 rounded-full transition-transform duration-300 group-hover:scale-150 ${status === "BOOKED" || status === "REDEEMED"
                                 ? "bg-green-500"
                                 : status === "CANCELLED"
-                                ? "bg-red-400"
-                                : "bg-transparent"
-                            }`}
+                                  ? "bg-red-400"
+                                  : status === "EXPIRED"
+                                    ? "bg-gray-400"   
+                                    : "bg-transparent"
+                              }`}
                           />
                         );
                       })}
                     </div>
 
-                    {/* Today Badge */}
                     {isToday && (
                       <div className="absolute -top-1 -right-1">
                         <div className="h-3 w-3 rounded-full bg-blue-600 border-2 border-white" />
@@ -503,8 +470,7 @@ export default function HostelCalendar() {
               })}
             </div>
 
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-4 sm:gap-6 mt-5 pt-5 border-t border-gray-100">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-5 pt-5 border-t border-gray-100">
               <span className="flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-600">
                 <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
                 Booked/Eaten
@@ -513,10 +479,13 @@ export default function HostelCalendar() {
                 <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
                 Cancelled
               </span>
+              <span className="flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-600">
+                <span className="h-2.5 w-2.5 rounded-full bg-gray-400" />
+                Missed
+              </span>
             </div>
           </div>
 
-          {/* Bulk Cancel Panel */}
           <div className="bg-linear-to-br from-gray-50 to-blue-50/50 rounded-xl p-5 border-2 border-blue-100 flex flex-col justify-center h-full">
             <div className="flex items-center gap-2 text-gray-900 font-bold mb-2">
               <div className="p-2 bg-blue-600 text-white rounded-lg">
@@ -583,7 +552,6 @@ export default function HostelCalendar() {
         </div>
       </div>
 
-      {/* Modal */}
       {selectedDateStr && (
         <DayDetailsModal
           dateStr={selectedDateStr}
@@ -593,7 +561,6 @@ export default function HostelCalendar() {
         />
       )}
 
-      {/* Toast */}
       {toast && (
         <Toast
           message={toast.msg}

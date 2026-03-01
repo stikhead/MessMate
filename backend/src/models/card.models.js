@@ -14,7 +14,10 @@ const cardSchema = new mongoose.Schema({
         required: true,
         default: 0
     },
-
+expiresAt: {
+    type: Date,
+    default: null
+},
     isActive: {
         type: String,
         enum: ['ACTIVE', 'INACTIVE'],

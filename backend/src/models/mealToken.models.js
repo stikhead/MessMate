@@ -25,7 +25,7 @@ const mealTokenSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['BOOKED', 'REDEEMED', 'CANCELLED'],
+        enum: ['BOOKED', 'REDEEMED', 'CANCELLED', 'EXPIRED'],
         default: 'BOOKED'
     },
     cost: {

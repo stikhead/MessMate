@@ -29,6 +29,8 @@ const badgeVariants = cva(
         BOOKED: "flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 uppercase tracking-wide",
         REDEEMED: "flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-bold border border-green-200 uppercase tracking-wide",
         CANCELLED: "flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-600 text-[10px] font-bold border border-red-200 uppercase tracking-wide",
+        EXPIRED: "flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-600 text-[10px] font-bold border border-red-200 uppercase tracking-wide",
+
       },
     },
     defaultVariants: {

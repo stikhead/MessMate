@@ -4,28 +4,24 @@ import { useState } from "react";
 import useSWR from "swr";
 import API from "@/lib/api";
 import Navbar from "@/components/student/Navbar";
-import { Coffee, Sun, Moon, UtensilsCrossed, AlertCircle, Leaf } from "lucide-react";
+import { Coffee, Sun, Moon, UtensilsCrossed, AlertCircle, Leaf, CalendarDays, Loader2 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { days, SHORT_DAYS } from "@/constants";
 import { MenuItem } from "@/types/common";
 
-
-
 const fetcher = (url: string) =>
   API.get(url).then((res) => {
-
     const data = Array.isArray(res.data.data)
       ? res.data.data
       : [res.data.data];
     return data.filter((i: unknown) => i !== null);
-
   });
 
 export default function WeeklyMenuPage() {
   const [selectedDayIndex, setSelectedDayIndex] = useState(new Date().getDay());
-  const { user, loading: userLoading } = useUser()
+  const { user, loading: userLoading } = useUser();
 
-  const dayName = selectedDayIndex+1;
+  const dayName = selectedDayIndex + 1;
 
   const { data: menu, error, isLoading } = useSWR<MenuItem[]>(
     `/menu/getMenu?day=${dayName}`,
@@ -42,30 +38,36 @@ export default function WeeklyMenuPage() {
           name: "Breakfast",
           time: "8:00 AM - 10:00 AM",
           icon: <Coffee className="h-6 w-6 text-orange-600" />,
-          borderColor: "border-l-orange-400",
+          borderColor: "border-l-orange-400 group-hover:border-l-orange-500",
           bg: "bg-orange-50",
           iconBg: "bg-orange-100",
-          bullet: "text-orange-600",
+          pillBg: "bg-orange-50 group-hover/card:bg-white",
+          pillText: "text-orange-700",
+          pillBorder: "border-orange-200",
         };
       case 2:
         return {
           name: "Lunch",
           time: "1:00 PM - 3:00 PM",
           icon: <Sun className="h-6 w-6 text-blue-600" />,
-          borderColor: "border-l-blue-400",
+          borderColor: "border-l-blue-400 group-hover:border-l-blue-500",
           bg: "bg-blue-50",
           iconBg: "bg-blue-100",
-          bullet: "text-blue-600",
+          pillBg: "bg-blue-50 group-hover/card:bg-white",
+          pillText: "text-blue-700",
+          pillBorder: "border-blue-200",
         };
       case 3:
         return {
           name: "Dinner",
           time: "7:00 PM - 9:00 PM",
           icon: <Moon className="h-6 w-6 text-indigo-600" />,
-          borderColor: "border-l-indigo-400",
+          borderColor: "border-l-indigo-400 group-hover:border-l-indigo-500",
           bg: "bg-indigo-50",
           iconBg: "bg-indigo-100",
-          bullet: "text-indigo-600",
+          pillBg: "bg-indigo-50 group-hover/card:bg-white",
+          pillText: "text-indigo-700",
+          pillBorder: "border-indigo-200",
         };
       default:
         return {
@@ -75,20 +77,21 @@ export default function WeeklyMenuPage() {
           borderColor: "border-l-gray-400",
           bg: "bg-gray-50",
           iconBg: "bg-gray-100",
-          bullet: "text-gray-600",
+          pillBg: "bg-gray-50",
+          pillText: "text-gray-700",
+          pillBorder: "border-gray-200",
         };
     }
   };
 
-
-  if (isLoading || userLoading) {
+  if (userLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex flex-col">
         <Navbar user={user} />
-        <div className="flex h-screen items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-            <p className="mt-4 text-gray-600">Loading Wallet...</p>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center flex flex-col items-center gap-3">
+            <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+            <p className="text-gray-500 font-medium">Loading Menu...</p>
           </div>
         </div>
       </div>
@@ -96,22 +99,31 @@ export default function WeeklyMenuPage() {
   }
 
   const isToday = (selectedDayIndex === new Date().getDay());
-  return (
-    <div className="min-h-screen bg-gray-50">
 
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar user={user} />
 
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 pb-24">
+      <main className="flex-1 mx-auto max-w-4xl w-full px-4 sm:px-6 py-6 sm:py-8 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-            Weekly Menu
-          </h1>
-          <p className="text-sm sm:text-base text-gray-500">Hostel A - Boys</p>
+        <div className="mb-8 bg-white p-6 sm:p-8 rounded-[2rem] border border-gray-100 shadow-sm flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-1 flex items-center gap-3">
+              <CalendarDays className="h-7 w-7 text-blue-600" />
+              Weekly Menu
+            </h1>
+            <p className="text-sm font-medium text-gray-500">Hostel A - Boys</p>
+          </div>
+          {isToday && (
+            <span className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 bg-blue-50 text-blue-700 text-xs font-extrabold uppercase tracking-widest rounded-full border border-blue-200 shadow-sm">
+              <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
+              Today
+            </span>
+          )}
         </div>
 
-        <div className="mb-6">
-          <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="mb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex overflow-x-auto gap-3 pb-4 scrollbar-hide snap-x">
             {SHORT_DAYS.map((day, index) => {
               const isSelected = index === selectedDayIndex;
               const isDayToday = index === new Date().getDay();
@@ -120,14 +132,15 @@ export default function WeeklyMenuPage() {
                 <button
                   key={day}
                   onClick={() => setSelectedDayIndex(index)}
-                  className={`relative shrink-0 min-w-17 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${isSelected
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105"
-                      : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
-                    }`}
+                  className={`relative shrink-0 snap-center min-w-18 rounded-2xl px-4 py-3 text-sm font-extrabold transition-all duration-300 ${
+                    isSelected
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 -translate-y-1 scale-105"
+                      : "bg-white text-gray-500 hover:text-gray-900 hover:bg-blue-50/50 border border-gray-100 hover:border-blue-100"
+                  }`}
                 >
                   {day}
                   {isDayToday && !isSelected && (
-                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-blue-600" />
+                    <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-500" />
                   )}
                 </button>
               );
@@ -136,42 +149,42 @@ export default function WeeklyMenuPage() {
         </div>
 
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900">
             {days[selectedDayIndex]}
           </h2>
           {isToday && (
-            <span className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-sm">
+            <span className="sm:hidden flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-extrabold uppercase tracking-widest rounded-full border border-blue-200 shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
               Today
             </span>
           )}
         </div>
 
-        <div className="space-y-4 sm:space-y-5">
+        <div className="space-y-5">
           {isLoading && !menu ? (
             [1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-48 rounded-2xl bg-white border border-gray-200 animate-pulse"
+                className="h-40 rounded-3xl bg-white border border-gray-100 animate-pulse flex items-center p-6"
               >
-                <div className="p-6 flex items-start gap-4">
-                  <div className="h-12 w-12 bg-gray-200 rounded-xl" />
-                  <div className="flex-1 space-y-3">
-                    <div className="h-5 bg-gray-200 rounded w-32" />
-                    <div className="h-4 bg-gray-100 rounded w-48" />
-                    <div className="space-y-2 mt-4">
-                      <div className="h-4 bg-gray-100 rounded w-full" />
-                      <div className="h-4 bg-gray-100 rounded w-3/4" />
-                    </div>
+                <div className="h-14 w-14 bg-gray-200 rounded-2xl shrink-0" />
+                <div className="ml-4 flex-1 space-y-3">
+                  <div className="h-5 bg-gray-200 rounded w-1/4" />
+                  <div className="h-4 bg-gray-100 rounded w-1/3" />
+                  <div className="flex gap-2 pt-2">
+                    <div className="h-8 bg-gray-100 rounded-xl w-20" />
+                    <div className="h-8 bg-gray-100 rounded-xl w-24" />
+                    <div className="h-8 bg-gray-100 rounded-xl w-16" />
                   </div>
                 </div>
               </div>
             ))
           ) : error ? (
-            <div className="p-5 bg-red-50 text-red-700 rounded-2xl flex items-start gap-3 border border-red-100">
-              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="p-6 bg-red-50 text-red-700 rounded-3xl flex items-start gap-3 border border-red-100">
+              <AlertCircle className="h-6 w-6 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-semibold mb-1">Failed to load menu</h4>
-                <p className="text-sm text-red-600">
+                <h4 className="font-bold text-lg mb-1">Failed to load menu</h4>
+                <p className="text-sm font-medium text-red-600/80">
                   Please check your connection and try again later.
                 </p>
               </div>
@@ -186,50 +199,53 @@ export default function WeeklyMenuPage() {
               return (
                 <div
                   key={mealType}
-                  className={`relative overflow-hidden rounded-2xl bg-white shadow-sm border-l-4 ${info.borderColor} hover:shadow-md transition-all duration-200`}
+                  className={`group/card relative overflow-hidden rounded-[2rem] bg-white shadow-sm border-l-[6px] ${info.borderColor} hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}
                 >
-                  <div className="p-5 sm:p-6">
-                    <div className="flex items-start gap-4">
+                  <div className="absolute inset-0 bg-linear-to-r from-gray-50/50 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+                  <div className="p-6 sm:p-8 relative z-10">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6">
+                      
                       <div
-                        className={`flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl ${info.iconBg}`}
+                        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover/card:scale-110 group-hover/card:-rotate-6 group-hover/card:shadow-md ${info.iconBg}`}
                       >
                         {info.icon}
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="mb-4">
-                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
-                            {info.name}
-                          </h3>
-                          <p className="text-sm text-gray-500 font-medium">
-                            {info.time}
-                          </p>
+                        <div className="flex justify-between items-start mb-4 gap-4">
+                          <div>
+                            <h3 className="text-xl font-extrabold text-gray-900 mb-1 transition-colors group-hover/card:text-blue-900">
+                              {info.name}
+                            </h3>
+                            <p className="text-xs font-bold text-gray-400">
+                              {info.time}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className={`text-xl font-black ${info.pillText}`}>
+                              ₹{meal.price || 0}
+                            </p>
+                            <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mt-0.5">
+                              Cost
+                            </p>
+                          </div>
                         </div>
 
-
-                        <ul className="space-y-2">
-                          {meal.items
-                            .split(",")
-                            .map((item: string, idx: number) => {
-                              const cleanItem = item.trim();
-                              if (!cleanItem) return null;
-                              return (
-                                <li
-                                  key={idx}
-                                  className="flex items-start gap-2.5 text-gray-700"
-                                >
-                                  <span
-                                    className={`mt-1.5 text-lg leading-none ${info.bullet}`}
-                                  >
-                                    •
-                                  </span>
-                                  <span className="text-sm sm:text-base">
-                                    {cleanItem}
-                                  </span>
-                                </li>
-                              );
-                            })}
-                        </ul>
+                        <div className="flex flex-wrap gap-2">
+                          {meal.items.split(",").map((item: string, idx: number) => {
+                            const cleanItem = item.trim();
+                            if (!cleanItem) return null;
+                            return (
+                              <span
+                                key={idx}
+                                className={`text-xs font-bold px-3.5 py-1.5 rounded-xl border transition-all duration-300 group-hover/card:shadow-sm hover:scale-105 cursor-default ${info.pillBg} ${info.pillText} ${info.pillBorder}`}
+                              >
+                                {cleanItem}
+                              </span>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -237,40 +253,36 @@ export default function WeeklyMenuPage() {
               );
             })
           ) : (
-
-            <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
-              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gray-100 mb-4">
-                <UtensilsCrossed className="h-8 w-8 text-gray-400" />
+            <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-gray-200">
+              <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-gray-50 mb-5">
+                <UtensilsCrossed className="h-10 w-10 text-gray-300" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                No Menu Available
+              <h3 className="text-xl font-extrabold text-gray-900 mb-2">
+                Menu Not Available
               </h3>
-              <p className="text-gray-500 text-sm">
-                Menu for {days[selectedDayIndex]} hasnt been uploaded yet.
+              <p className="text-gray-500 font-medium text-sm">
+                The menu for {days[selectedDayIndex]} hasn&apos;t been uploaded yet.
               </p>
             </div>
           )}
         </div>
 
-
-
-        <div className="mt-8 rounded-2xl bg-linear-to-br from-green-50 to-emerald-50 p-5 border border-green-200 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-100">
-              <Leaf className="h-5 w-5 text-green-600" />
+        <div className="mt-8 rounded-[2rem] bg-linear-to-br from-green-50 to-emerald-50 p-6 sm:p-8 border border-green-200 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-green-100 shadow-inner border border-green-200/50">
+              <Leaf className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <h4 className="font-bold text-green-900 text-sm sm:text-base mb-1">
-                Dietary Information
+              <h4 className="font-extrabold text-green-900 text-base mb-1.5">
+                Dietary & Hygiene Information
               </h4>
-              <p className="text-green-800 text-sm leading-relaxed">
-                All meals are prepared with fresh
-                ingredients daily. We maintain the highest standards of hygiene
-                and quality.
+              <p className="text-green-800/80 text-sm font-medium leading-relaxed">
+                All meals are prepared daily with fresh ingredients. We strictly adhere to FSSAI guidelines to maintain the highest standards of food safety, hygiene, and nutritional quality.
               </p>
             </div>
           </div>
         </div>
+
       </main>
     </div>
   );

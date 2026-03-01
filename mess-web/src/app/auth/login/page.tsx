@@ -2,37 +2,36 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import API from "@/lib/api";
 import Cookies from "js-cookie";
-import { UtensilsCrossed, GraduationCap, ShieldCheck, User, Lock, HelpCircle, AlertCircle } from "lucide-react";
+import { UtensilsCrossed, GraduationCap, ShieldCheck, User, Lock, HelpCircle, AlertCircle, Loader2, EyeOff, Eye, ArrowRight, Mail } from "lucide-react";
 import { LoginResponse, LoginFormData } from "@/types/common";
 
 type UserRole = "student" | "admin";
-
-
 
 export default function LoginPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<UserRole>("student");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState<LoginFormData>({
     cardNumber: "",
     password: "",
   });
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
     setError("");
 
     if (!formData.cardNumber.trim()) {
-      setError(activeTab === "student" ? "Card number is required" : "Username is required");
+      setError(activeTab === "student" ? "Email is required" : "Username is required");
       setLoading(false);
       return;
     }
-
 
     if (!formData.password.trim()) {
       setError("Password is required");
@@ -43,11 +42,8 @@ export default function LoginPage() {
     try {
       const payload =
         activeTab === "student"
-          ? { email: formData.cardNumber,
-              password: formData.password }
-          : { role: "admin", 
-              email: formData.cardNumber,
-              password: formData.password };
+          ? { email: formData.cardNumber, password: formData.password }
+          : { role: "admin", email: formData.cardNumber, password: formData.password };
 
       const res = await API.post<LoginResponse>("/users/login", payload);
       const { accessToken, user } = res.data.data;
@@ -59,7 +55,6 @@ export default function LoginPage() {
       });
       localStorage.setItem("user", JSON.stringify(user));
 
-     
       if (activeTab === "admin") {
         router.replace("/admin/dashboard");
       } else {
@@ -67,7 +62,6 @@ export default function LoginPage() {
       }
     } catch (err: unknown) {
       console.error("Login error:", err);
-      
       if (err && typeof err === "object" && "response" in err) {
         const error = err as { response?: { data?: { message?: string } } };
         setError(error.response?.data?.message || "Invalid credentials. Please try again.");
@@ -79,104 +73,106 @@ export default function LoginPage() {
     }
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (error) setError("");
   };
 
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSubmit();
+    }
+  };
+
   const handleTabChange = (tab: UserRole) => {
     setActiveTab(tab);
     setError("");
-    setFormData({
-      cardNumber: "",
-      password: "",
-    });
+    setFormData({ cardNumber: "", password: "" });
   };
 
   return (
-    <div className="min-h-screen flex bg-linear-to-br from-blue-50 to-indigo-100">
-      <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-blue-600 via-blue-700 to-indigo-800 text-white p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+    <div className="min-h-screen flex bg-gray-50">
+      
+      <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-blue-600 via-blue-700 to-indigo-900 text-white p-16 flex-col justify-between relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg">
               <UtensilsCrossed className="w-8 h-8" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">MessMate</h1>
+            <h1 className="text-4xl font-extrabold tracking-tight">MessMate</h1>
           </div>
-          <p className="text-blue-100 text-lg font-light">
-            University Mess Management
+          <p className="text-blue-100 text-xl font-medium tracking-wide">
+            Digital Mess Management.
           </p>
         </div>
-        <div className="space-y-8 relative z-10">
-          <div className="flex gap-4">
+
+        <div className="space-y-10 relative z-10 max-w-md">
+          <div className="flex gap-5 group">
             <div className="shrink-0">
-              <div className="p-2.5 bg-white/10 backdrop-blur-sm rounded-lg">
-                <GraduationCap className="w-6 h-6" />
+              <div className="p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 transition-transform group-hover:scale-110 group-hover:-rotate-6">
+                <GraduationCap className="w-6 h-6 text-blue-100" />
               </div>
             </div>
             <div>
-              <h3 className="font-semibold text-lg mb-1">For Students</h3>
-              <p className="text-blue-100 text-sm leading-relaxed">
-                Check daily menus, report issues, and track your meal attendance
-                with QR scanning.
+              <h3 className="font-bold text-xl mb-1">For Students</h3>
+              <p className="text-blue-100/80 text-base leading-relaxed">
+                Scan QR codes to eat, cancel meals on the go, and track your wallet balance all in one place.
               </p>
             </div>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex gap-5 group">
             <div className="shrink-0">
-              <div className="p-2.5 bg-white/10 backdrop-blur-sm rounded-lg">
-                <ShieldCheck className="w-6 h-6" />
+              <div className="p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 transition-transform group-hover:scale-110 group-hover:rotate-6">
+                <ShieldCheck className="w-6 h-6 text-blue-100" />
               </div>
             </div>
             <div>
-              <h3 className="font-semibold text-lg mb-1">For Admins</h3>
-              <p className="text-blue-100 text-sm leading-relaxed">
-                Manage vendors, analyze demand patterns, and resolve complaints
-                efficiently.
+              <h3 className="font-bold text-xl mb-1">For Administration</h3>
+              <p className="text-blue-100/80 text-base leading-relaxed">
+                Access powerful analytics, predict exact food preparation quantities, and minimize daily wastage.
               </p>
             </div>
           </div>
         </div>
 
-        <p className="text-blue-200 text-sm relative z-10">
-          © 2026 University Mess Management System
+        <p className="text-blue-200/60 text-sm font-medium relative z-10">
+          © 2026 Central University of Haryana • MessMate
         </p>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative">
         <div className="w-full max-w-md">
-          <div className="lg:hidden mb-8 text-center">
-            <div className="inline-flex items-center gap-2 mb-2">
-              <div className="p-2 bg-blue-600 rounded-lg">
+          
+          <div className="lg:hidden mb-10 text-center">
+            <div className="inline-flex items-center gap-3 mb-2">
+              <div className="p-3 bg-linear-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-600/30">
                 <UtensilsCrossed className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">MessMate</h1>
+              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">MessMate</h1>
             </div>
-            <p className="text-gray-600 text-sm">University Mess Management</p>
           </div>
 
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          <div className="mb-8">
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">
               Welcome Back
             </h2>
-            <p className="text-gray-600">Please login to access your account</p>
+            <p className="text-gray-500 font-medium">Please enter your details to sign in.</p>
           </div>
 
-          <div className="bg-gray-100 p-1 rounded-lg mb-6 flex gap-1">
+          <div className="bg-gray-100/80 p-1.5 rounded-xl mb-8 flex gap-1 shadow-inner border border-gray-200/60">
             <button
               type="button"
               onClick={() => handleTabChange("student")}
-              className={`flex-1 rounded-md py-2.5 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+              className={`flex-1 rounded-lg py-3 text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
                 activeTab === "student"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-white text-blue-700 shadow-sm border border-gray-200/50"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
               }`}
             >
               <User className="w-4 h-4" />
@@ -185,139 +181,116 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => handleTabChange("admin")}
-              className={`flex-1 rounded-md py-2.5 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+              className={`flex-1 rounded-lg py-3 text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
                 activeTab === "admin"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-white text-blue-700 shadow-sm border border-gray-200/50"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
               }`}
             >
               <ShieldCheck className="w-4 h-4" />
-              Admin
+              Administration
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-5">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                 <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                <span className="text-sm">{error}</span>
+                <span className="text-sm font-medium">{error}</span>
               </div>
             )}
 
-            {activeTab === "student" ? (
-              <>
-                <div>
-                  <label
-                    htmlFor="cardNumber"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Email or Card Number
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black" />
-                    <input
-                      type="text"
-                      id="cardNumber"
-                      name="cardNumber"
-                      value={formData.cardNumber}
-                      onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="Enter your card number"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-200 text-gray-400 group-focus-within:text-blue-500">
+                {activeTab === "student" ? <Mail className="h-5 w-5" /> : <User className="h-5 w-5" />}
+              </div>
+              <input
+                type="text"
+                name="cardNumber"
+                id="cardNumber"
+                value={formData.cardNumber}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                disabled={loading}
+                placeholder={activeTab === "student" ? "Email Address" : "Admin Username"}
+                className="block w-full pl-12 pr-4 py-4 bg-white border border-gray-200 rounded-xl text-gray-900 text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all peer placeholder-transparent shadow-sm"
+              />
+              <label 
+                htmlFor="cardNumber"
+                className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white"
+              >
+                {activeTab === "student" ? "Email Address" : "Admin Username"}
+              </label>
+            </div>
 
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="password"
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="Enter your password"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-200 text-gray-400 group-focus-within:text-blue-500">
+                <Lock className="h-5 w-5" />
+              </div>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                id="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                disabled={loading}
+                placeholder="Password"
+                className="block w-full pl-12 pr-12 py-4 bg-white border border-gray-200 rounded-xl text-gray-900 text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all peer placeholder-transparent shadow-sm"
+              />
+              <label 
+                htmlFor="password"
+                className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white"
+              >
+                Password
+              </label>
+              
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
 
-              </>
-            ) : (
-              <>
-                <div>
-                  <label
-                    htmlFor="cardNumber"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Username
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      id="cardNumber"
-                      name="cardNumber"
-                      value={formData.cardNumber}
-                      onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="Enter your username"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="password"
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="Enter your password"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
+           
 
             <button
-              type="submit"
+              onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-base hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 group"
             >
-              {loading
-                ? "Logging in..."
-                : `Login as ${activeTab === "student" ? "Student" : "Admin"}`}
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" /> Authenticating...
+                </>
+              ) : (
+                <>
+                  Sign In <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                </>
+              )}
             </button>
-          </form>
-
+          </div>
+          {activeTab === "student" && (
+            <div className="mt-8 text-center border-t border-gray-200/60 pt-6">
+              <p className="text-gray-500 font-medium">
+                New to MessMate?{" "}
+                <Link href="/auth/register" className="text-blue-600 font-extrabold hover:text-blue-700 hover:underline transition-colors">
+                  Create an account
+                </Link>
+              </p>
+            </div>
+          )}
           
         </div>
       </div>
 
       <button
         type="button"
-        className="fixed bottom-6 right-6 p-4 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all focus:ring-4 focus:ring-blue-300"
+        className="fixed bottom-6 right-6 p-3.5 bg-gray-900 text-white rounded-full shadow-xl hover:bg-black hover:scale-105 transition-all focus:ring-4 focus:ring-gray-300"
         aria-label="Help"
+        title="Need Help?"
       >
         <HelpCircle className="w-6 h-6" />
       </button>

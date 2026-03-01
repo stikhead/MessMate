@@ -53,7 +53,7 @@ export default function MenuControlPage() {
   };
 
 
-  const handleSubmit = async (e: React.SyntheticEvent) => {
+ const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
 
     if (!formData.items.trim()) {
@@ -68,14 +68,14 @@ export default function MenuControlPage() {
     setSubmitting(true);
     try {
       if (editingItem) {
-        await API.put(`/menu/update/?id=${editingItem._id}&items=${formData.items}`);
+        await API.put(`/menu/update/?id=${editingItem._id}&items=${encodeURIComponent(formData.items)}&price=${formData.price}`);
+        
         setToast({
           show: true,
           msg: "Menu updated successfully",
           type: "success",
         });
       } else {
-
         await API.post("/menu/add", formData);
         setToast({
           show: true,
@@ -86,9 +86,9 @@ export default function MenuControlPage() {
       closeModal();
       refreshMenu();
     } catch (error) {
-  const msg = getErrorMessage(error, "Failed to submit response");
-  setToast({ show: true, msg, type: "error" });
-} finally {
+      const msg = getErrorMessage(error, "Failed to submit response");
+      setToast({ show: true, msg, type: "error" });
+    } finally {
       setSubmitting(false);
     }
   };

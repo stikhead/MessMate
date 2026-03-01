@@ -96,7 +96,7 @@ const getWeeklyMenu = asyncHandler(async(req, res)=>{
 })
 
 const updateMenu = asyncHandler(async(req, res)=>{
-    const {id, items } = req.query; // i mean we would only allow the name of dishes in case of typo or new update - keeping items as a string
+    const {id, items, price } = req.query; // i mean we would only allow the name of dishes in case of typo or new update - keeping items as a string
     
     
 
@@ -114,6 +114,7 @@ const updateMenu = asyncHandler(async(req, res)=>{
     }
 
     getItem.items = items;
+    getItem.price = price ? Number(price) : 0
     await getItem.save({validateBeforeSave: false});
 
     return res

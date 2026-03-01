@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Search, Loader2, CheckCircle2, AlertCircle, Filter, Mail, Phone, CreditCard } from "lucide-react";
+import { Users, Search, Loader2, CheckCircle2, AlertCircle, Filter, Mail, Phone, CreditCard, Clock } from "lucide-react";
 import API from "@/lib/api";
 import Toast from "@/components/student/Toast";
 import { Student } from "@/types/common";
@@ -14,10 +14,9 @@ export default function StudentsPage() {
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterCardStatus, setFilterCardStatus] = useState<"all" | "active" | "inactive">("all");
+  const [filterCardStatus, setFilterCardStatus] = useState<string>("");
 
-    const [toast, setToast] = useState<{ show: boolean; msg: string; type: "success" | "error" } | null>(null);
-
+  const [toast, setToast] = useState<{ show: boolean; msg: string; type: "success" | "error" } | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const { user } = useUser();
@@ -25,17 +24,15 @@ export default function StudentsPage() {
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      const res = await API.get("/users/getUsers");
+      const cacheBuster = new Date().getTime();
+      const res = await API.get(`/users/getUsers?t=${cacheBuster}`);
+      
       const data = Array.isArray(res.data.data) ? res.data.data : [];
       setStudents(data);
       setFilteredStudents(data);
     } catch (error) {
       console.error("Failed to fetch students:", error);
-      setToast({
-        show: true,
-        msg: "Failed to load students",
-        type: "error",
-      });
+      setToast({ show: true, msg: "Failed to load students", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -60,10 +57,15 @@ export default function StudentsPage() {
 
     if (filterCardStatus !== "all") {
       filtered = filtered.filter((student) => {
+        const card = student.cardNumber;
+        const isExpired = card?.expiresAt ? new Date(card.expiresAt) < new Date() : false;
+        
         if (filterCardStatus === "active") {
-          return student.isCardHolder && student.cardNumber?.isActive === "ACTIVE";
+          return student.isCardHolder && card?.isActive === "ACTIVE" && !isExpired;
+        } else if (filterCardStatus === "expired") {
+          return student.isCardHolder && isExpired;
         } else {
-          return !student.isCardHolder || student.cardNumber?.isActive !== "ACTIVE";
+          return !student.isCardHolder || (card?.isActive !== "ACTIVE" && !isExpired);
         }
       });
     }
@@ -72,7 +74,6 @@ export default function StudentsPage() {
   }, [searchQuery, filterCardStatus, students]);
 
   const handleToggleAssign = async (student: Student) => {
-  
     if (student.isCardHolder) {
       setToast({ show: true, msg: "Student already has an active card.", type: "error" });
       return;
@@ -80,19 +81,15 @@ export default function StudentsPage() {
 
     setTogglingId(student._id);
     try {
-      await API.post("/cards/create", {
-        userID: student._id,
-      });
-
+      await API.post("/cards/create", { userID: student._id });
       setToast({
         show: true,
-        msg: `Card assigned successfully to ${student.fullName}!`,
+        msg: `Card assigned to ${student.fullName}. They must recharge it to activate.`,
         type: "success",
       });
-
       await fetchStudents();
     } catch (error) {
-      const msg = getErrorMessage(error, "Failed to submit response");
+      const msg = getErrorMessage(error, "Failed to assign card");
       setToast({ show: true, msg, type: "error" });
     } finally {
       setTogglingId(null);
@@ -143,13 +140,14 @@ export default function StudentsPage() {
               <select
                 value={filterCardStatus}
                 onChange={(e) =>
-                  setFilterCardStatus(e.target.value as "all" | "active" | "inactive")
+                  setFilterCardStatus(e.target.value)
                 }
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none bg-white"
               >
                 <option value="all">All Students</option>
-                <option value="active">With Active Card</option>
-                <option value="inactive">Without Active Card</option>
+                <option value="active">Active Plan</option>
+                <option value="expired">Expired Plan</option>
+                <option value="inactive">Inactive / No Card</option>
               </select>
             </div>
           </div>
@@ -185,7 +183,7 @@ export default function StudentsPage() {
                     <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Student</th>
                     <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Contact</th>
                     <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Balance</th>
-                    <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Plan Status</th>
                     <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Assign Card</th>
                   </tr>
                 </thead>
@@ -194,10 +192,13 @@ export default function StudentsPage() {
                   {filteredStudents.map((student) => {
                     const isToggling = togglingId === student._id;
                     const hasCard = student.isCardHolder;
+                    const card = student.cardNumber;
+                    
+                    const isExpired = card?.expiresAt ? new Date(card.expiresAt) < new Date() : false;
+                    const expiryDateFormatted = card?.expiresAt ? new Date(card.expiresAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'short' }) : "N/A";
 
                     return (
                       <tr key={student._id} className="hover:bg-gray-50 transition-colors">
-
                         <td className="px-4 sm:px-6 py-4">
                           <div>
                             <p className="text-sm font-semibold text-gray-900">{student.fullName}</p>
@@ -210,9 +211,9 @@ export default function StudentsPage() {
                             <p className="text-xs text-gray-600 flex items-center gap-1.5">
                               <Mail className="h-3 w-3" /> {student.email}
                             </p>
-                            {student.phone && (
+                            {student.phoneNumber && (
                               <p className="text-xs text-gray-600 flex items-center gap-1.5">
-                                <Phone className="h-3 w-3" /> {student.phone}
+                                <Phone className="h-3 w-3" /> {student.phoneNumber}
                               </p>
                             )}
                           </div>
@@ -220,22 +221,34 @@ export default function StudentsPage() {
 
                         <td className="px-4 sm:px-6 py-4">
                           <p className="text-sm font-bold text-gray-900">
-                            ₹{student.currentBalance.toLocaleString("en-IN")}
+                            ₹{student.currentBalance?.toLocaleString("en-IN") || 0}
                           </p>
                         </td>
 
                         <td className="px-4 sm:px-6 py-4">
-                          {hasCard && student.cardNumber?.isActive === "ACTIVE" ? (
+                          {hasCard && isExpired ? (
+                            <div>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-semibold border border-red-200">
+                                <Clock className="h-3 w-3" /> Expired
+                              </span>
+                              <p className="text-[10px] text-gray-500 mt-1 font-bold">Ended: {expiryDateFormatted}</p>
+                            </div>
+                          ) : hasCard && card?.isActive === "ACTIVE" ? (
                             <div>
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-semibold border border-green-200">
                                 <CheckCircle2 className="h-3 w-3" /> Active
                               </span>
-                              <p className="text-xs text-gray-500 mt-1">{student.cardNumber?.mealAmount || 0} meals left</p>
+                              {card.expiresAt && (
+                                <p className="text-[10px] text-gray-500 mt-1 font-bold">Ends: {expiryDateFormatted}</p>
+                              )}
                             </div>
-                          ) : hasCard && student.cardNumber?.isActive !== "ACTIVE" ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-semibold border border-gray-200">
-                              <AlertCircle className="h-3 w-3" /> INACTIVE
-                            </span>
+                          ) : hasCard ? (
+                            <div>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600 text-xs font-semibold border border-orange-200">
+                                <AlertCircle className="h-3 w-3" /> Unpaid / Inactive
+                              </span>
+                              <p className="text-[10px] text-gray-500 mt-1 font-bold">Awaiting Recharge</p>
+                            </div>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-semibold border border-gray-200">
                               <CreditCard className="h-3 w-3" /> No card
@@ -246,22 +259,23 @@ export default function StudentsPage() {
                         <td className="px-4 sm:px-6 py-4">
                           <div className="flex items-center justify-end gap-3">
                             {isToggling && <Loader2 className="h-4 w-4 animate-spin text-blue-600" />}
-
                             <button
                               type="button"
                               role="switch"
                               aria-checked={hasCard}
                               disabled={isToggling || hasCard}
                               onClick={() => handleToggleAssign(student)}
-                              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${hasCard
+                              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                                hasCard
                                   ? 'bg-green-500 cursor-not-allowed'
                                   : 'bg-gray-300 hover:bg-gray-400'
-                                }`}
+                              }`}
                             >
                               <span
                                 aria-hidden="true"
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${hasCard ? 'translate-x-5' : 'translate-x-0'
-                                  }`}
+                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  hasCard ? 'translate-x-5' : 'translate-x-0'
+                                }`}
                               />
                             </button>
                           </div>

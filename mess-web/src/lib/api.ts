@@ -2,9 +2,10 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 const API = axios.create({
-  baseURL: "http://10.113.211.172:8000/api/v1",
+  baseURL: "http://localhost:8000/api/v1",
   headers: {
     "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": true
   },
 });
 

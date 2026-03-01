@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {Users, IndianRupee, Utensils, AlertTriangle, Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, IndianRupee, Utensils, AlertTriangle, Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import API from "@/lib/api";
 import AdminLayout from "@/components/admin/Sidebar";
 import { useUser } from "@/hooks/useUser";
@@ -9,12 +9,10 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { AnalyticsData } from "@/types/common";
 import MetricCard from "@/components/admin/MetricCard";
 
-
 export default function AnalyticsPage() {
   const { user } = useUser();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-
 
   const today = new Date();
   const todayStr = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -24,7 +22,8 @@ export default function AnalyticsPage() {
     const fetchAnalytics = async () => {
       setLoading(true);
       try {
-        const res = await API.get(`/analytics/overview?date=${selectedDate}`);
+        const cacheBuster = new Date().getTime();
+        const res = await API.get(`/analytics/overview?date=${selectedDate}&t=${cacheBuster}`);
         setData(res.data.data);
       } catch (error) {
         console.error("Failed to fetch analytics", error);
@@ -39,7 +38,7 @@ export default function AnalyticsPage() {
     return (
       <AdminLayout user={user}>
         <div className="flex h-[calc(100vh-4rem)] items-center justify-center p-8">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
         </div>
       </AdminLayout>
     );
@@ -57,26 +56,37 @@ export default function AnalyticsPage() {
   const profit = currentData.todaysRevenue - currentData.expenditure;
   const isToday = selectedDate === todayStr;
 
-
   const [selYear, selMonth] = selectedDate.split('-').map(Number);
   const daysInMonth = new Date(selYear, selMonth, 0).getDate();
   const startDayOfMonth = new Date(selYear, selMonth - 1, 1).getDay();
 
   const revenueMap: Record<string, number> = {};
-
   currentData.monthlyData.forEach(item => {
     revenueMap[item._id] = item.revenue;
   });
 
   const handlePrevMonth = () => {
-    const prev = new Date(selYear, selMonth - 2, 1);
-    setSelectedDate(prev.toISOString().split('T')[0]);
+    let y = selYear;
+    let m = selMonth - 1;
+    if (m < 1) {
+      m = 12;
+      y--;
+    }
+    setSelectedDate(`${y}-${String(m).padStart(2, '0')}-01`);
   };
 
   const handleNextMonth = () => {
-    const next = new Date(selYear, selMonth, 1);
-    if (next > today) return; 
-    setSelectedDate(next.toISOString().split('T')[0]);
+    let y = selYear;
+    let m = selMonth + 1;
+    if (m > 12) {
+      m = 1;
+      y++;
+    }
+    const nextStr = `${y}-${String(m).padStart(2, '0')}-01`;
+    
+    if (nextStr.substring(0, 7) > todayStr.substring(0, 7)) return; 
+    
+    setSelectedDate(nextStr);
   };
 
   return (
@@ -193,13 +203,17 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
-              <button onClick={handlePrevMonth} className="p-1 hover:bg-gray-200 rounded text-gray-600">
+              <button onClick={handlePrevMonth} className="p-1 hover:bg-gray-200 rounded text-gray-600 transition-colors">
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="text-sm font-bold text-gray-800 min-w-25 text-center">
-                {new Date(selYear, selMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                {new Date(selYear, selMonth - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </span>
-              <button onClick={handleNextMonth} className="p-1 hover:bg-gray-200 rounded text-gray-600">
+              <button 
+                onClick={handleNextMonth} 
+                disabled={selectedDate.substring(0, 7) >= todayStr.substring(0, 7)}
+                className="p-1 hover:bg-gray-200 rounded text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
@@ -220,7 +234,7 @@ export default function AnalyticsPage() {
                 const currentCellDateStr = `${selYear}-${String(selMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
                 const isSelected = selectedDate === currentCellDateStr;
-                const isFuture = new Date(currentCellDateStr) > today;
+                const isFuture = currentCellDateStr > todayStr;
   
                 const dayRevenue = revenueMap[currentCellDateStr] || 0;
 
@@ -259,4 +273,3 @@ export default function AnalyticsPage() {
     </AdminLayout>
   );
 }
-

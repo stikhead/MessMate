@@ -68,7 +68,6 @@ export default function MealCard({ type, menuItem, token, isPast, onBook, onCanc
 
           <div className="flex gap-2">
             {isCardHolder ? (
-              /* --- HOSTELLER VIEW --- */
               isCancelled ? (
                 <button
                   onClick={() => onBook(type, price)}
@@ -85,7 +84,6 @@ export default function MealCard({ type, menuItem, token, isPast, onBook, onCanc
                 </div>
               ) : null
             ) : (
-              /* --- DAY SCHOLAR VIEW --- */
               <>
                 <button
                   onClick={() => onCancel(type)}
