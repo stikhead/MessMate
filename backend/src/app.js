@@ -8,6 +8,17 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ];
 
+import connectDB from "./db/db.js";
+
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+       next();
+    } catch (error) {
+        res.status(500).json({ message: "Database connection failed" });
+    }
+});
+
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);

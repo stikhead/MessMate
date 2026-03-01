@@ -11,17 +11,4 @@ dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 
 
-connectDB()
-.then(async()=>{
-    app.on("error", (error)=>{
-        console.log("error occuured: ", error);
-    })
-    
-    app.listen(process.env.PORT, ()=>{
-        console.log(`started on ${process.env.PORT}`)
-    })
-    startCronJobs();
-})
-.catch((err)=>{
-    console.log("err: ", err);
-})
+export default app;
