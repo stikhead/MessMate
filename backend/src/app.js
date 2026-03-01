@@ -61,4 +61,23 @@ app.use('/api/v1/feedback', feebackRouter);
 app.use('/api/v1/cards', cardRouter)
 app.use('/api/v1/analytics', analyticRouter)
 
+import { expireUnusedTokens } from "./utils/mealExpiry.cron.js";
+
+app.get("/api/v1/cron/expire-meal", async (req, res) => {
+    const authHeader = req.headers['authorization'];
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).json({ message: "Unauthorized" });
+    }
+    const { type, name } = req.query;
+
+    if (!type || !name) {
+        return res.status(400).json({ message: "Missing meal type or name" });
+    }
+    try {
+        await expireUnusedTokens(Number(type), name);
+        return res.status(200).json({ success: true, message: `${name} expired!` });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Cron failed" });
+    }
+});
 export default app;

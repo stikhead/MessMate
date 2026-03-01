@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/v1/cron/expire-meal?type=1&name=Breakfast",
+      "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/v1/cron/expire-meal?type=2&name=Lunch",
+      "schedule": "30 9 * * *"
+    },
+    {
+      "path": "/api/v1/cron/expire-meal?type=3&name=Dinner",
+      "schedule": "30 16 * * *"
+    }
+  ]
+}
