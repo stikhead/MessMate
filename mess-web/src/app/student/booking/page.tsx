@@ -65,6 +65,15 @@ export default function BookMealPage() {
     if (type === 3 && h >= 18) return true;
     return false;
   };
+  const getBookingDayIndex = (offset: number) => {
+
+    const d = new Date();
+
+    d.setDate(d.getDate() + offset);
+
+    return d.getDay();
+
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -73,13 +82,13 @@ export default function BookMealPage() {
       const menuDayIndex = getMenuDayIndex(dayOffset); 
       const dateStr = getTargetDateStr(dayOffset); 
       const cacheBuster = new Date().getTime(); 
-
-      // Fetch Menu
+      const bookingDayIndex = getBookingDayIndex(dayOffset);
+ 
       const menuRes = await API.get(`/menu/getMenu?day=${menuDayIndex}&mealType=0&t=${cacheBuster}`).catch(() => null);
       const menuData = Array.isArray(menuRes?.data.data) ? menuRes?.data.data : [menuRes?.data.data];
       setMenu(menuData.filter((i: unknown) => i !== null));
 
-      const res = await API.get(`/meal/get-token?date=${dateStr}&t=${cacheBuster}`);
+      const res = await API.get(`/meal/get-token?date=${dateStr}&day=${bookingDayIndex}&t=${cacheBuster}`);
       const fetchedTokens = res.data.data;
 
       if (Array.isArray(fetchedTokens)) {

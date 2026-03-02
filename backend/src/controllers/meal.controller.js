@@ -23,15 +23,15 @@ const deadLineCalculate = async(bookingDate, mealType)=>{
 
 
 const bookMeal = asyncHandler(async(req, res)=>{
-    const { date, mealType} = req.body;
+    const {day, date, mealType} = req.body;
 
-    if(!date || !mealType){
+    if(!day, !date || !mealType){
         throw new ApiError(400, "All fields are required");
     }
 
     const bookingDate = await calculateActualDate(date, 2);
     const menuItem  = await Menu.findOne({
-        $and: [{bookingDate}, {mealType}]
+        $and: [{day}, {mealType}]
     })
 
     if(!menuItem){
