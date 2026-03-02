@@ -28,17 +28,18 @@ export default function Navbar({ user }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLogout = async () => {
+const handleLogout = async () => {
+    Cookies.remove("accessToken");
+    localStorage.removeItem("user");
+
     try {
-      await API.post(`/users/logout`);
-      Cookies.remove("accessToken");
-      localStorage.removeItem("user");
-      router.replace("/auth/login");
-      router.refresh();
+        await API.post(`/users/logout`);
     } catch (error) {
-      console.log("Logout error:", error);
+        console.log("Backend logout ignored:", error);
+    } finally {
+        window.location.href = "/auth/login";
     }
-  };
+};
 
   const isActive = (path: string) => pathname === path;
 
