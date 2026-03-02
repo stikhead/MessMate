@@ -46,14 +46,14 @@ export default function BookMealPage() {
     const d = new Date();
     d.setDate(d.getDate() + offset);
     let day = d.getDay();
-    if (day === 0) day = 7; 
-    return day; 
+    if (day === 0) day = 7;
+    return day;
   };
-  
+
   const getTargetDateStr = (offset: number) => {
     const d = new Date();
     d.setDate(d.getDate() + offset);
-    return d.toLocaleDateString("en-CA"); 
+    return d.toLocaleDateString("en-CA");
   };
 
   const isMealPast = (type: number) => {
@@ -79,11 +79,11 @@ export default function BookMealPage() {
     setLoading(true);
     try {
       const dayOffset = selectedDate === "TODAY" ? 0 : 1;
-      const menuDayIndex = getMenuDayIndex(dayOffset); 
-      const dateStr = getTargetDateStr(dayOffset); 
-      const cacheBuster = new Date().getTime(); 
+      const menuDayIndex = getMenuDayIndex(dayOffset);
+      const dateStr = getTargetDateStr(dayOffset);
+      const cacheBuster = new Date().getTime();
       const bookingDayIndex = getBookingDayIndex(dayOffset);
- 
+
       const menuRes = await API.get(`/menu/getMenu?day=${menuDayIndex}&mealType=0&t=${cacheBuster}`).catch(() => null);
       const menuData = Array.isArray(menuRes?.data.data) ? menuRes?.data.data : [menuRes?.data.data];
       setMenu(menuData.filter((i: unknown) => i !== null));
@@ -141,16 +141,18 @@ export default function BookMealPage() {
       const dayOffset = selectedDate === "TODAY" ? 0 : 1;
       const dateStr = getTargetDateStr(dayOffset);
 
-      await API.post("/meal/cancel", { mealType, date: dateStr });
+      const bookingDayIndex = getBookingDayIndex(dayOffset);
+
+      await API.post("/meal/cancel", { mealType, day: bookingDayIndex, date: dateStr });
       setToast({ show: true, message: "Meal cancelled successfully!", type: "success" });
 
       await refreshUser();
       await fetchData();
       await fetchBookingHistory();
-    }  catch (error) {
-       const message = getErrorMessage(error, "Failed to submit response");
-       setToast({ show: true, message, type: "error" }); 
-     } finally {
+    } catch (error) {
+      const message = getErrorMessage(error, "Failed to submit response");
+      setToast({ show: true, message, type: "error" });
+    } finally {
       setBookingLoading(null);
     }
   };
@@ -167,15 +169,15 @@ export default function BookMealPage() {
     try {
       const dayOffset = selectedDate === "TODAY" ? 0 : 1;
       const dateStr = getTargetDateStr(dayOffset);
-      
-      await API.post("/meal/book", { mealType, date: dateStr });
+      const bookingDayIndex = getBookingDayIndex(dayOffset);
+      await API.post("/meal/book", { mealType, day: bookingDayIndex, date: dateStr });
       setToast({ show: true, message: "Meal booked successfully!", type: "success" });
 
       await refreshUser();
       await fetchData();
       await fetchBookingHistory();
-    }  catch (error) {
-       const message = getErrorMessage(error, "Failed to submit response");
+    } catch (error) {
+      const message = getErrorMessage(error, "Failed to submit response");
       setToast({ show: true, message, type: "error" });
     } finally {
       setBookingLoading(null);
@@ -211,8 +213,8 @@ export default function BookMealPage() {
             <button
               onClick={() => setMainTab("BOOKING")}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 ${mainTab === "BOOKING"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
                 }`}
             >
               <UtensilsCrossed className="h-4 w-4" />
@@ -221,8 +223,8 @@ export default function BookMealPage() {
             <button
               onClick={() => setMainTab("HISTORY")}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 ${mainTab === "HISTORY"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
                 }`}
             >
               <History className="h-4 w-4" />
@@ -367,7 +369,7 @@ function BookingHistoryRow({ booking }: { booking: MealToken }) {
 
   const getDayName = (dayNum?: number) => {
     if (dayNum === undefined) return "";
-    return days[dayNum - 1] || ""; 
+    return days[dayNum - 1] || "";
   };
 
   const info = getMealInfo(booking.mealType);
