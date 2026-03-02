@@ -3,12 +3,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import API from "@/lib/api";
 import { 
-  User, Mail, Lock, Hash, Loader2, ArrowRight, 
-  UtensilsCrossed, Phone, Eye, EyeOff, AlertCircle, CheckCircle2 
-} from "lucide-react";
+  
+  UtensilsCrossed} from "lucide-react";
 import Toast from "@/components/student/Toast"; 
 // import { RegisterFormData } from "@/types/common";
 // import { getErrorMessage } from "@/lib/error-handler";

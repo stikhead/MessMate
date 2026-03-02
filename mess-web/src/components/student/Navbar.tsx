@@ -34,6 +34,7 @@ export default function Navbar({ user }: NavbarProps) {
       Cookies.remove("accessToken");
       localStorage.removeItem("user");
       router.replace("/auth/login");
+      router.refresh();
     } catch (error) {
       console.log("Logout error:", error);
     }

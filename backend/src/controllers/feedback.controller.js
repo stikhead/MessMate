@@ -121,13 +121,11 @@ const getFeedback = asyncHandler(async(req, res)=>{
     )
 })
 const getAllFeedbacks = asyncHandler(async(req, res) => {
-    // 1. Fetch all feedbacks (no user filter)
-    // 2. Populate the user so admin sees their name
-    // 3. Populate the meal so admin sees the date and mealType
+   
     const feedbacks = await Feedback.find()
-        .populate("user", "name email hostel roomNo") // Populates student info
-        .populate("meal")                             // Populates meal info
-        .sort({createdAt: -1});                       // Newest first
+        .populate("user", "name email hostel roomNo") 
+        .populate("meal")                           
+        .sort({createdAt: -1});                     
 
     if(!feedbacks){
         throw new ApiError(404, "No feedbacks found");
@@ -140,5 +138,4 @@ const getAllFeedbacks = asyncHandler(async(req, res) => {
     )
 })
 
-// Don't forget to export it at the bottom!
 export { newFeedback, respondFeedback, getFeedback, getAllFeedbacks };
