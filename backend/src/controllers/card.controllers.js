@@ -54,7 +54,9 @@ const rechargeCard = asyncHandler(async (req, res) => {
         throw new ApiError(404, "No Mess Card linked to this account");
     }
 
-    const tomorrow = new Date();
+    const istTimeString = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+   
+    const tomorrow = new Date(istTimeString);
     tomorrow.setHours(5, 30, 0, 0); 
     tomorrow.setDate(tomorrow.getDate() + 1);
     
@@ -132,7 +134,8 @@ const rechargeCard = asyncHandler(async (req, res) => {
     const card = await Card.findById(user.cardNumber._id);
     card.isActive = 'ACTIVE';
     card.mealAmount += PLAN_MEALS;
-    const expiry = new Date();
+    const istTimeString = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const expiry = new Date(istTimeString);
     expiry.setDate(expiry.getDate() + 30); 
     expiry.setHours(23, 59, 59, 999); 
     card.expiresAt = expiry; 

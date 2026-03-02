@@ -1,6 +1,7 @@
 export const calculateActualDate = async(targetDay, timeLine)=>{
-    let today = new Date();
-
+    const istTimeString = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+   
+    let today = new Date(istTimeString);
     let currentDay = today.getDay();
     let daysToAddOrSub;
     const finalDate = new Date(today);

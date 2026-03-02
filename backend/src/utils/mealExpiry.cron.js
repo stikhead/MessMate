@@ -3,6 +3,7 @@ import { MealToken } from "../models/mealToken.models.js";
 
 const expireUnusedTokens = async (mealType, mealName) => {
     try {
+        
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
 
