@@ -129,16 +129,16 @@ const bookMeal = asyncHandler(async(req, res)=>{
 })
 
 const cancelMeal = asyncHandler(async(req, res)=>{
-    const {day, mealType} = req.body;
+    const {day, mealType, date} = req.body;
 
-    if(!day || !mealType){
+    if(!date || !mealType){
         throw new ApiError(400, "All fields are required");
     }
 
     const bookingDate = await calculateActualDate(day, 2);
     const getMeal = await MealToken.findOne({
         student: req.user?._id,
-        date: bookingDate,
+        date: date,
         mealType: mealType ,
         status: "BOOKED"
     })
