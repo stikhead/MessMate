@@ -25,12 +25,13 @@ const deadLineCalculate = async(bookingDate, mealType)=>{
 const bookMeal = asyncHandler(async(req, res)=>{
     const { date, mealType} = req.body;
 
-    if( !date || !mealType){
+    if(!date || !mealType){
         throw new ApiError(400, "All fields are required");
     }
 
+    const bookingDate = await calculateActualDate(date, 2);
     const menuItem  = await Menu.findOne({
-        $and: [{date}, {mealType}]
+        $and: [{bookingDate}, {mealType}]
     })
 
     if(!menuItem){
@@ -42,7 +43,6 @@ const bookMeal = asyncHandler(async(req, res)=>{
     if(!itemPrice){
         throw new ApiError(500, "Server Error")
     }    
-    const bookingDate = await calculateActualDate(date, 2);
     const isPastDeadline = await deadLineCalculate(bookingDate, mealType);
     if(isPastDeadline){
         throw new ApiError(400, "Booking deadline has passed for this meal");
