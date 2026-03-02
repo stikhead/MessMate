@@ -147,7 +147,7 @@ const cancelMeal = asyncHandler(async(req, res)=>{
     console.log(bookingDate);
     console.log(mealType);
     if(!getMeal){
-        throw new ApiError(404, "Not found");
+        throw new ApiError(404, `Not found ${bookingDate}`);
     }
 
     if(await deadLineCalculate(bookingDate, mealType)){
