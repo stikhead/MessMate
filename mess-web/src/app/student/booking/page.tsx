@@ -42,23 +42,19 @@ export default function BookMealPage() {
     }
   }, [isCardHolder, selectedDate]);
 
-  const getBookingDayIndex = (offset: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() + offset);
-    return d.getDay(); 
-  };
-
   const getMenuDayIndex = (offset: number) => {
     const d = new Date();
     d.setDate(d.getDate() + offset);
-    return d.getDay() + 1; 
+    let day = d.getDay();
+    if (day === 0) day = 7; 
+    return day; 
   };
   
   const getTargetDateStr = (offset: number) => {
     const d = new Date();
     d.setDate(d.getDate() + offset);
-    return d.toLocaleDateString("en-CA");
-  }
+    return d.toLocaleDateString("en-CA"); 
+  };
 
   const isMealPast = (type: number) => {
     if (selectedDate === "TOMORROW") return false;
@@ -70,19 +66,20 @@ export default function BookMealPage() {
     return false;
   };
 
- const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const dayOffset = selectedDate === "TODAY" ? 0 : 1;
       const menuDayIndex = getMenuDayIndex(dayOffset); 
-      const bookingDayIndex = getBookingDayIndex(dayOffset); 
+      const dateStr = getTargetDateStr(dayOffset); 
       const cacheBuster = new Date().getTime(); 
 
+      // Fetch Menu
       const menuRes = await API.get(`/menu/getMenu?day=${menuDayIndex}&mealType=0&t=${cacheBuster}`).catch(() => null);
       const menuData = Array.isArray(menuRes?.data.data) ? menuRes?.data.data : [menuRes?.data.data];
       setMenu(menuData.filter((i: unknown) => i !== null));
 
-      const res = await API.get(`/meal/get-token?day=${bookingDayIndex}&t=${cacheBuster}`);
+      const res = await API.get(`/meal/get-token?date=${dateStr}&t=${cacheBuster}`);
       const fetchedTokens = res.data.data;
 
       if (Array.isArray(fetchedTokens)) {
@@ -130,13 +127,12 @@ export default function BookMealPage() {
     fetchBookingHistory();
   }, [fetchBookingHistory]);
 
-const handleCancel = async (mealType: number) => {
+  const handleCancel = async (mealType: number) => {
     try {
       const dayOffset = selectedDate === "TODAY" ? 0 : 1;
-      const bookingDayIndex = getBookingDayIndex(dayOffset);
       const dateStr = getTargetDateStr(dayOffset);
 
-      await API.post("/meal/cancel", { mealType, day: bookingDayIndex, date: dateStr });
+      await API.post("/meal/cancel", { mealType, date: dateStr });
       setToast({ show: true, message: "Meal cancelled successfully!", type: "success" });
 
       await refreshUser();
@@ -148,8 +144,9 @@ const handleCancel = async (mealType: number) => {
      } finally {
       setBookingLoading(null);
     }
-  }
-const handleBook = async (mealType: number, price: number) => {
+  };
+
+  const handleBook = async (mealType: number, price: number) => {
     if (!user) return;
 
     if (user.currentBalance < price) {
@@ -160,9 +157,9 @@ const handleBook = async (mealType: number, price: number) => {
     setBookingLoading(mealType);
     try {
       const dayOffset = selectedDate === "TODAY" ? 0 : 1;
-      const bookingDayIndex = getBookingDayIndex(dayOffset);
       const dateStr = getTargetDateStr(dayOffset);
-      await API.post("/meal/book", { mealType, day: bookingDayIndex, date: dateStr });
+      
+      await API.post("/meal/book", { mealType, date: dateStr });
       setToast({ show: true, message: "Meal booked successfully!", type: "success" });
 
       await refreshUser();
