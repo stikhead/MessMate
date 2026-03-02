@@ -177,15 +177,15 @@ const cancelMeal = asyncHandler(async(req, res)=>{
 })
 
 const getMyTokens = asyncHandler(async(req, res)=>{
-    const {day, mealType} = req.query
+    const {date, mealType} = req.query
     
     const filter = {
         student: req.user?._id,
     }
 
-    if(day){
+    if(date){
 
-    const bookingDate = await calculateActualDate(Number(day), 2); 
+    const bookingDate = await calculateActualDate(date, 2); 
         filter.date =  bookingDate
     }
     
