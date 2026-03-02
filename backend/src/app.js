@@ -1,68 +1,27 @@
-import "dotenv/config"
-import express from "express";
-import cors from "cors";
-import cookieParser from "cookie-parser";
+import { MealToken } from "../models/mealToken.models.js";
 
-const app = express();
-
-
-import connectDB from "./db/db.js";
-
-app.use(async (req, res, next) => {
+export const expireUnusedTokens = async (mealType, mealName) => {
     try {
-        await connectDB();
-       next();
+        const startOfDay = new Date();
+        startOfDay.setUTCHours(0, 0, 0, 0);
+
+        const endOfDay = new Date();
+        endOfDay.setUTCHours(23, 59, 59, 999);
+
+        const result = await MealToken.updateMany(
+            {
+                date: { $gte: startOfDay, $lte: endOfDay },
+                mealType: Number(mealType), 
+                status: 'BOOKED'
+            },
+            {
+                $set: { status: 'EXPIRED' }
+            }
+        );
+
+        console.log(`[Cron] 🕒 Marked ${result.modifiedCount} unused ${mealName} tokens as EXPIRED.`);
     } catch (error) {
-        res.status(500).json({ message: "Database connection failed" });
+        console.error(`[Cron Error] ❌ Failed to expire ${mealName} tokens:`, error);
+        throw error; 
     }
-});
-
-const allowedOrigins = [
-  "http://localhost:3000", 
-  process.env.FRONTEND_URL 
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Blocked by CORS'));
-    }
-  },
-  credentials: true
-}));
-
-app.use(express.json({
-    limit: '16kb'
-}))
-
-app.use(express.urlencoded({
-    limit: '16kb',
-    extended: true
-}))
-
-app.use(express.static("public"));
-
-app.use(cookieParser());
-
-import userRouter from "./routes/users.routes.js";
-import mealRouter from "./routes/meal.routes.js";
-import menuRouter from "./routes/menu.routes.js";
-import walletRouter from "./routes/wallet.routes.js";
-import feebackRouter from "./routes/feedback.routes.js";
-import cardRouter from "./routes/card.routes.js";
-import analyticRouter from "./routes/analytics.routes.js";
-
-app.use("/api/v1/users", userRouter);
-app.use("/api/v1/menu", menuRouter);
-app.use("/api/v1/meal", mealRouter);
-app.use("/api/v1/wallet", walletRouter);
-app.use('/api/v1/feedback', feebackRouter);
-app.use('/api/v1/cards', cardRouter)
-app.use('/api/v1/analytics', analyticRouter)
-
-
-export default app;
+};
