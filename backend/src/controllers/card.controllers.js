@@ -134,7 +134,7 @@ const rechargeCard = asyncHandler(async (req, res) => {
     card.isActive = 'ACTIVE';
     card.mealAmount += PLAN_MEALS;
     const istTimeString = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-    const expiry = new Date(istTimeString);
+    const expiry = new Date();
     expiry.setDate(expiry.getDate() + 30); 
     expiry.setHours(23, 59, 59, 999); 
     card.expiresAt = expiry; 
