@@ -17,20 +17,21 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ user, children }: AdminLayoutProps) {
-  const router = useRouter();
+  // const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    try {
-      await API.post(`/users/logout`);
-      Cookies.remove("accessToken");
-      localStorage.removeItem("user");
-      router.replace("/auth/login");
+     try {
+    await API.post(`/users/logout`);
+    Cookies.remove("accessToken");
+    localStorage.removeItem("user");
     } catch (error) {
-      console.error("Logout error:", error);
+        console.log("Backend logout ignored:", error);
+    } finally {
+        window.location.href = "/auth/login";
     }
-  };
+};
 
   const closeMenu = () => setMobileMenuOpen(false);
 
