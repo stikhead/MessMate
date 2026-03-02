@@ -23,14 +23,14 @@ const deadLineCalculate = async(bookingDate, mealType)=>{
 
 
 const bookMeal = asyncHandler(async(req, res)=>{
-    const {day, date, mealType} = req.body;
+    const { date, mealType} = req.body;
 
-    if(!day || !date || !mealType){
+    if( !date || !mealType){
         throw new ApiError(400, "All fields are required");
     }
 
     const menuItem  = await Menu.findOne({
-        $and: [{day}, {mealType}]
+        $and: [{date}, {mealType}]
     })
 
     if(!menuItem){
@@ -129,9 +129,9 @@ const bookMeal = asyncHandler(async(req, res)=>{
 })
 
 const cancelMeal = asyncHandler(async(req, res)=>{
-    const {day, mealType, date} = req.body;
+    const {mealType, date} = req.body;
 
-    if(!day || !mealType){
+    if(!date || !mealType){
         throw new ApiError(400, "All fields are required");
     }
 
