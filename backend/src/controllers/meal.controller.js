@@ -25,7 +25,7 @@ const deadLineCalculate = async(bookingDate, mealType)=>{
 const bookMeal = asyncHandler(async(req, res)=>{
     const {day, date, mealType} = req.body;
 
-    if(!day, !date || !mealType){
+    if(!day || !date || !mealType){
         throw new ApiError(400, "All fields are required");
     }
 
