@@ -56,7 +56,7 @@ const rechargeCard = asyncHandler(async (req, res) => {
 
     
     const tomorrow = new Date();
-    tomorrow.setUTCHours(5, 30, 0, 0); 
+    tomorrow.setUTCHours(0, 0, 0, 0); 
     tomorrow.setDate(tomorrow.getDate() + 1);
     
     const futureTokens = await MealToken.find({
