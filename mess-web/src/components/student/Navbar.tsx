@@ -29,11 +29,11 @@ export default function Navbar({ user }: NavbarProps) {
   const pathname = usePathname();
 
 const handleLogout = async () => {
+  
+  try {
+    await API.post(`/users/logout`);
     Cookies.remove("accessToken");
     localStorage.removeItem("user");
-
-    try {
-        await API.post(`/users/logout`);
     } catch (error) {
         console.log("Backend logout ignored:", error);
     } finally {
