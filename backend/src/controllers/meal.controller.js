@@ -234,6 +234,7 @@ const verifyMeal = asyncHandler(async(req, res)=>{
     if(currentHour>=17) mealType = 3;
 
     const dateToday = new Date();
+    dateToday.setHours(0, 0, 0, 0);
 
     const token = await MealToken.findOne({
         student: req.user?._id,
@@ -294,7 +295,7 @@ const getDailyHeadCount = asyncHandler(async(req, res)=>{
     const {date} = req.params;
 
     let queryDate = date ? new Date(date) : new Date();
-
+    queryDate.setHours(0,0,0,0);
 
     const stats = await MealToken.aggregate([
         {
