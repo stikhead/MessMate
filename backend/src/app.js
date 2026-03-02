@@ -1,27 +1,89 @@
-import { MealToken } from "../models/mealToken.models.js";
+import "dotenv/config"
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
 
-export const expireUnusedTokens = async (mealType, mealName) => {
+const app = express();
+
+
+import connectDB from "./db/db.js";
+
+app.use(async (req, res, next) => {
     try {
-        const startOfDay = new Date();
-        startOfDay.setUTCHours(0, 0, 0, 0);
-
-        const endOfDay = new Date();
-        endOfDay.setUTCHours(23, 59, 59, 999);
-
-        const result = await MealToken.updateMany(
-            {
-                date: { $gte: startOfDay, $lte: endOfDay },
-                mealType: Number(mealType), 
-                status: 'BOOKED'
-            },
-            {
-                $set: { status: 'EXPIRED' }
-            }
-        );
-
-        console.log(`[Cron] 🕒 Marked ${result.modifiedCount} unused ${mealName} tokens as EXPIRED.`);
+        await connectDB();
+       next();
     } catch (error) {
-        console.error(`[Cron Error] ❌ Failed to expire ${mealName} tokens:`, error);
-        throw error; 
+        res.status(500).json({ message: "Database connection failed" });
     }
-};
+});
+
+const allowedOrigins = [
+  "http://localhost:3000", 
+  process.env.FRONTEND_URL 
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Blocked by CORS'));
+    }
+  },
+  credentials: true
+}));
+
+app.use(express.json({
+    limit: '16kb'
+}))
+
+app.use(express.urlencoded({
+    limit: '16kb',
+    extended: true
+}))
+
+app.use(express.static("public"));
+
+app.use(cookieParser());
+
+import userRouter from "./routes/users.routes.js";
+import mealRouter from "./routes/meal.routes.js";
+import menuRouter from "./routes/menu.routes.js";
+import walletRouter from "./routes/wallet.routes.js";
+import feebackRouter from "./routes/feedback.routes.js";
+import cardRouter from "./routes/card.routes.js";
+import analyticRouter from "./routes/analytics.routes.js";
+
+app.use("/api/v1/users", userRouter);
+app.use("/api/v1/menu", menuRouter);
+app.use("/api/v1/meal", mealRouter);
+app.use("/api/v1/wallet", walletRouter);
+app.use('/api/v1/feedback', feebackRouter);
+app.use('/api/v1/cards', cardRouter)
+app.use('/api/v1/analytics', analyticRouter)
+
+import { expireUnusedTokens } from "./utils/mealExpiry.cron.js";
+
+app.get("/api/v1/cron/expire-meal", async (req, res) => {
+    const authHeader = req.headers['authorization'];
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { type, name } = req.query;
+
+    if (!type || !name) {
+        return res.status(400).json({ message: "Missing meal type or name" });
+    }
+
+    try {
+        await expireUnusedTokens(Number(type), name);
+        return res.status(200).json({ success: true, message: `${name} expired!` });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Cron failed" });
+    }
+});
+
+export default app;
