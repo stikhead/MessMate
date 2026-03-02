@@ -54,10 +54,9 @@ const rechargeCard = asyncHandler(async (req, res) => {
         throw new ApiError(404, "No Mess Card linked to this account");
     }
 
-    const istTimeString = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-   
-    const tomorrow = new Date(istTimeString);
-    tomorrow.setHours(5, 30, 0, 0); 
+    
+    const tomorrow = new Date();
+    tomorrow.setUTCHours(5, 30, 0, 0); 
     tomorrow.setDate(tomorrow.getDate() + 1);
     
     const futureTokens = await MealToken.find({
