@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import API from "@/lib/api";
 import Cookies from "js-cookie";
-import { UtensilsCrossed, GraduationCap, ShieldCheck, User, Lock, HelpCircle, AlertCircle, Loader2, EyeOff, Eye, ArrowRight, Mail } from "lucide-react";
+import { UtensilsCrossed, GraduationCap, ShieldCheck, User, Lock, HelpCircle, AlertCircle, Loader2, EyeOff, Eye, ArrowRight, Mail, X, ChevronLeft } from "lucide-react";
 import { LoginResponse, LoginFormData } from "@/types/common";
 
 type UserRole = "student" | "admin";
@@ -16,6 +17,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1); 
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [formData, setFormData] = useState<LoginFormData>({
     cardNumber: "",
@@ -73,12 +85,72 @@ export default function LoginPage() {
     }
   };
 
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotError("");
+    try {
+      await API.post("/users/send-otp", { email: forgotEmail });
+      setForgotStep(2);
+    } catch (err: any) {
+      setForgotError(err.response?.data?.message || "Email not found.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleFinalReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setForgotError("Passwords do not match!");
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError("");
+    try {
+      await API.post("/users/reset-password", {
+        email: forgotEmail,
+        otp: otp.join(""),
+        newPassword
+      });
+      alert("Password reset successfully!");
+      closeForgotModal();
+    } catch (err: any) {
+      setForgotError(err.response?.data?.message || "Invalid OTP or request expired.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const closeForgotModal = () => {
+    setShowForgotModal(false);
+    setForgotStep(1);
+    setForgotEmail("");
+    setForgotError("");
+    setOtp(["", "", "", "", "", ""]);
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
+  const handleOtpChange = (value: string, index: number) => {
+    if (isNaN(Number(value))) return;
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+    if (value !== "" && index < 5) otpRefs.current[index + 1]?.focus();
+  };
+
+  const handleOtpKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === "Backspace" && otp[index] === "" && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (error) setError("");
   };
-
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -223,38 +295,48 @@ export default function LoginPage() {
               </label>
             </div>
 
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-200 text-gray-400 group-focus-within:text-blue-500">
-                <Lock className="h-5 w-5" />
+            <div className="space-y-2">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-200 text-gray-400 group-focus-within:text-blue-500">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  id="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  disabled={loading}
+                  placeholder="Password"
+                  className="block w-full pl-12 pr-12 py-4 bg-white border border-gray-200 rounded-xl text-gray-900 text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all peer placeholder-transparent shadow-sm"
+                />
+                <label 
+                  htmlFor="password"
+                  className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white"
+                >
+                  Password
+                </label>
+                
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                id="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                disabled={loading}
-                placeholder="Password"
-                className="block w-full pl-12 pr-12 py-4 bg-white border border-gray-200 rounded-xl text-gray-900 text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all peer placeholder-transparent shadow-sm"
-              />
-              <label 
-                htmlFor="password"
-                className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white"
-              >
-                Password
-              </label>
-              
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
 
-           
+              <div className="flex justify-end px-1">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline transition-all"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            </div>
 
             <button
               onClick={handleSubmit}
@@ -272,6 +354,7 @@ export default function LoginPage() {
               )}
             </button>
           </div>
+
           {activeTab === "student" && (
             <div className="mt-8 text-center border-t border-gray-200/60 pt-6">
               <p className="text-gray-500 font-medium">
@@ -285,6 +368,99 @@ export default function LoginPage() {
           
         </div>
       </div>
+
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
+            <div className="p-6 flex justify-between items-center border-b border-gray-50">
+              <div className="flex items-center gap-2">
+                {forgotStep === 2 && (
+                  <button onClick={() => setForgotStep(1)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-400">
+                    <ChevronLeft size={20} />
+                  </button>
+                )}
+                <h3 className="text-xl font-extrabold text-gray-900">
+                  {forgotStep === 1 ? "Reset Password" : "New Password"}
+                </h3>
+              </div>
+              <button onClick={closeForgotModal} className="p-2 hover:bg-gray-100 rounded-full">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            
+            <form onSubmit={forgotStep === 1 ? handleSendOtp : handleFinalReset} className="p-8 space-y-6">
+              <p className="text-gray-500 text-sm font-medium">
+                {forgotStep === 1 
+                  ? "Enter your university email address to receive a 6-digit reset code."
+                  : `Enter the code sent to ${forgotEmail} and set your new password.`}
+              </p>
+
+              {forgotError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <span className="text-sm font-medium">{forgotError}</span>
+                </div>
+              )}
+
+              {forgotStep === 1 ? (
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="University Email"
+                    className="block w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex gap-2 justify-center">
+                    {otp.map((digit, idx) => (
+                      <input key={idx} type="text" maxLength={1} value={digit} onChange={(e) => handleOtpChange(e.target.value, idx)} onKeyDown={(e) => handleOtpKeyDown(e, idx)} className="w-11 h-13 border-2 border-gray-200 rounded-xl text-center text-lg font-bold focus:border-blue-500 outline-none transition-all" />
+                    ))}
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500">
+                        <Lock className="h-5 w-5" />
+                      </div>
+                      <input type={showNewPass ? "text" : "password"} required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New Password" className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100" />
+                      <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-4 top-4 text-gray-400">
+                        {showNewPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500">
+                        <Lock className="h-5 w-5" />
+                      </div>
+                      <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm Password" className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={forgotLoading}
+                className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-70"
+              >
+                {forgotLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    {forgotStep === 1 ? "Send Reset Code" : "Update Password"} <ArrowRight size={18} />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"

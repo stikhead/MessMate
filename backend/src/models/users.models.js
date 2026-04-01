@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken"
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 
-const userSchema =  new mongoose.Schema({
+const userSchema = new mongoose.Schema({
     userID: {
         type: String,
         default: uuidv4,
@@ -89,47 +89,65 @@ const userSchema =  new mongoose.Schema({
     refreshToken: {
         type: String,
         select: false
-    }
+    },
 
-}, {timestamps: true});
+    verification: {
+        emailToken: {
+            type: String,
+        },
+        emailExpiry: {
+            type: Date
+        },
+        passwordToken: {
+            type: String,
+        },
+        passwordExpiry: {
+            type: Date
+        },
+        nextOtpAvailableAt: {
+            type: Date
+        }
+    },
 
-userSchema.pre("save", async function(next) {
-    if(this.isModified("password")){  // checks if any field is modified, this is required bc we do not want to run bcrypt every time while modifying other fields
+}, { timestamps: true });
+
+userSchema.pre("save", async function (next) {
+    if (this.isModified("password")) {  // checks if any field is modified, this is required bc we do not want to run bcrypt every time while modifying other fields
         this.password = await bcrypt.hash(this.password, 10);
     }
 });   // do not use array function since it doesnt provide context ( this. )
 
 
-userSchema.pre('save', async function(next){
-    if(this.role === 'student' && !this.cardNumber){
+userSchema.pre('save', async function (next) {
+    if (this.role === 'student' && !this.cardNumber) {
         this.cardNumber = crypto.randomBytes(6).toString('hex').toUpperCase();
     }
 })
 
-userSchema.methods.comparePassword = async function(password) {
+userSchema.methods.comparePassword = async function (password) {
     return await bcrypt.compare(password, this.password);
 }
 
-userSchema.methods.generateAccessToken = async function() {
+userSchema.methods.generateAccessToken = async function () {
     return jwt.sign({
         _id: this._id,
         email: this.email,
         userID: this.userID,
         fullName: this.fullName,
         role: this.role
-    }, 
-        process.env.ACCESS_TOKEN_SECRET, 
+    },
+        process.env.ACCESS_TOKEN_SECRET,
         {
             expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         }
     )
 }
 
-userSchema.methods.generateRefreshToken = async function() {
+userSchema.methods.generateRefreshToken = async function () {
     return jwt.sign({
         _id: this._id
-    }, 
-        process.env.REFRESH_TOKEN_SECRET, 
+    },
+        process.env.REFRESH_TOKEN_SECRET,
         {
             expiresIn: process.env.REFRESH_TOKEN_EXPIRY
         }

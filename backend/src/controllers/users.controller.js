@@ -3,6 +3,36 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
+const isOtpAvailableAndGenerateOtp = async (user) => {
+    const currentTime = Date.now();
+
+
+    if (!user.verification) {
+        user.verification = {};
+    }
+
+    if (user.verification?.nextOtpAvailableAt && currentTime < user.verification.nextOtpAvailableAt) {
+        const secondsLeft = Math.ceil((user.verification.nextOtpAvailableAt - currentTime) / 1000);
+        throw new ApiError(429, `Please wait ${secondsLeft} seconds before requesting another code.`);
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const cooldownMs = 60 * 1000;
+    const expiryMs = 15 * 60 * 1000;
+    const nextAvailable = currentTime + cooldownMs;
+
+    if (user.isVerified) {
+        user.verification.passwordToken = otp;
+        user.verification.passwordExpiry = currentTime + expiryMs;
+    } else {
+        user.verification.emailToken = otp;
+        user.verification.emailExpiry = currentTime + expiryMs;
+    }
+
+    user.verification.nextOtpAvailableAt = nextAvailable;
+    return { nextAvailable, otp, user };
+
+}
 
 const generateAccessAndRefreshToken = async(userID)=>{
     const user = await User.findById(userID).select("+refreshToken");
@@ -264,7 +294,7 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
 
 const getAllUsers = asyncHandler(async(req, res)=>{
     if(req?.user._id === 'student'){
-        throw new ApiError(401, "missing perms");
+        throw new ApiError(402, "missing perms");
     }
 
     const users = await User.find().populate('cardNumber');
@@ -281,5 +311,164 @@ const getAllUsers = asyncHandler(async(req, res)=>{
 
 })
 
+const googleLogin = asyncHandler(async (req, res) => {
+    const { code, fullName, phoneNumber, roll_no } = req.body;
 
-export {registerUser, loginUser, logoutUser, getCurrentUser, changeCurrentPassword, refreshAccessToken, getAllUsers};
+    if (!code || !fullName || !phoneNumber || !roll_no) {
+        throw new ApiError(
+            400, 'Google token is required'
+        )
+    }
+
+    let googleUser;
+    try {
+        const { data: tokens } = await axios.post(`${process.env.GOOGLE_OAUTH_URI}`, {
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            code: code,
+            grant_type: 'authorization_code',
+            redirect_uri: process.env.GOOGLE_REDIRECT_URI
+        });
+
+        const { access_token } = tokens;
+
+        const response = await axios.get(`${process.env.GOOGLE_VERIFICATION_URI}`, {
+            headers: { Authorization: `Bearer ${access_token}` }
+        });
+
+        googleUser = response.data;
+
+    } catch (error) {
+        console.error(error.response?.data || error.message);
+        throw new ApiError(401, "Google authentication failed");
+    }
+
+    let user = await User.findOne({ email: googleUser.email });
+
+    if (!user) {
+        const generatedPassword = crypto.randomBytes(32).toString("hex");
+
+        user = await User.create({
+            email: googleUser.email,
+            fullName: fullName,
+            roll_no: roll_no,
+            phoneNumber: phoneNumber,
+            password: generatedPassword,
+            isVerified: true,
+            name: googleUser.name
+        });
+    }
+
+    const { refreshToken, accessToken } = await generateAccessAndRefreshToken(user);
+    return res
+        .status(200)
+        .cookie(
+            'accessToken', `${accessToken}`, {
+            httpOnly: true,
+            secure: true
+        }
+        )
+        .cookie(
+            'refreshToken', `${refreshToken}`, {
+            httpOnly: true,
+            secure: true
+        }
+        )
+        .json(
+            new ApiResponse(200, {
+                user: user,
+                accessToken: accessToken,
+                refreshToken: refreshToken
+            },
+                "User logged in successfullty")
+        )
+})
+
+const sendOtp = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        throw new ApiError(400, 'Email is required');
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await User.findOne({ email: normalizedEmail });
+
+    if (!existingUser) {
+        return res.status(200).json(
+            new ApiResponse(200, {nextOtpAvailableAt: Date.now() + ( 60 * 1000)}, "If an account exists, a new code has been sent.")
+        );
+    }
+
+    const { nextAvailable, otp, user } = await isOtpAvailableAndGenerateOtp(existingUser);
+
+    await user.save({ validateBeforeSave: false });
+
+    try {
+        await sendVerificationEmail(normalizedEmail, otp);
+        console.log(`OTP Resent to ${normalizedEmail}: ${otp}`);
+    } catch (error) {
+        if (user.isVerified) {
+            user.verification.passwordToken = undefined;
+            user.verification.passwordExpiry = undefined;
+        } else {
+            user.verification.emailToken = undefined;
+            user.verification.emailExpiry = undefined;
+        }
+        user.verification.nextOtpAvailableAt = undefined;
+        await user.save({ validateBeforeSave: false });
+        throw new ApiError(500, `Failed to send email: ${error.message}`);
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, {
+            nextOtpAvailableAt: nextAvailable
+        }, 'If an account exists, a new code has been sent.')
+    );
+});
+
+const verifyForgetPasswordOtpAndResetPassword = asyncHandler(async (req, res) => {
+    const { otp, email, newPassword } = req.body;
+
+    if (!otp || !email || !newPassword) {
+        throw new ApiError(400, "All fields (email, otp, newPassword) are required");
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await User.findOne({
+        email: normalizedEmail
+    });
+
+    if (!user) {
+        throw new ApiError(400, 'Invalid or expired OTP');
+    }
+
+    let validOtp;
+    if (user.isVerified) {
+        validOtp = user.verification?.passwordToken === otp && user.verification?.passwordExpiry > currentTime;
+    } else {
+        validOtp = user.verification?.emailToken === otp && user.verification?.emailExpiry > currentTime;
+
+    }
+
+    if (!validOtp) {
+        throw new ApiError(400, 'Invalid or expired OTP');
+    }
+
+
+    if (!user.isVerified) {
+        user.isVerified = true;
+    }
+
+    user.verification.passwordToken = undefined;
+    user.verification.passwordExpiry = undefined;
+    user.verification.emailToken = undefined;
+    user.verification.emailExpiry = undefined;
+    await user.save({ validateBeforeSave: true });
+
+    return res.status(200).json(
+        new ApiResponse(200, {}, "Password reset successfully")
+    );
+});
+
+export {registerUser, loginUser, logoutUser, googleLogin, verifyForgetPasswordOtpAndResetPassword, sendOtp, getCurrentUser, changeCurrentPassword, refreshAccessToken, getAllUsers};
