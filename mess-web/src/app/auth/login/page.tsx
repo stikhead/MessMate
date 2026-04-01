@@ -214,7 +214,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-blue-200/60 text-sm font-medium relative z-10">
-          © 2026 Central University of Haryana • MessMate
+          © 2026 University Mess Management • MessMate
         </p>
       </div>
 
