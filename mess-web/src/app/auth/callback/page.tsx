@@ -62,12 +62,12 @@ function CallbackContent() {
           localStorage.setItem("user", JSON.stringify(user));
           
           setToast({ message: "Welcome back!", type: "success" });
-          setTimeout(() => router.push("/student/dashboard"), 1000);
+          setTimeout(() => router.replace("/student/dashboard"), 1000);
         }
       } catch (err: any) {
         console.error("Auth error:", err);
         setToast({ message: "Google authentication failed", type: "error" });
-        setTimeout(() => router.push("/auth/login"), 2000);
+        setTimeout(() => router.replace("/auth/login"), 2000);
       }
     };
 

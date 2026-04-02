@@ -64,7 +64,7 @@ function VerifyContent() {
     try {
       const res = await API.post("/users/verify", { 
         email, 
-        otp: otp.join("") 
+        code: otp.join("") 
       });
 
       const { accessToken, user } = res.data.data;

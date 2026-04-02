@@ -70,7 +70,7 @@ export default function RegisterPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       return setToast({ message: "Passwords do not match!", type: "error" });
@@ -85,11 +85,23 @@ export default function RegisterPage() {
       );
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || "";
-      
-      if (errorMessage.toLowerCase().includes("verify") || errorMessage.toLowerCase().includes("already exists")) {
-        setToast({ message: "User exists. Re-sending verification code...", type: "success" });
+      const status = err.response?.status;
+
+      if (status === 409 || errorMessage.toLowerCase().includes("already exists")) {
+        setToast({ 
+          message: "An account with this email already exists. Please sign in.", 
+          type: "error" 
+        });
+        setTimeout(() => router.push("/auth/login"), 2000);
+        return;
+      }
+
+      if (errorMessage.toLowerCase().includes("verify")) {
+        setToast({ message: "Account found but not verified. Re-sending code...", type: "success" });
         await handleSendOtp(formData.email);
-      } else {
+      } 
+      
+      else {
         setToast({ message: errorMessage || "Registration failed.", type: "error" });
       }
     } finally {
