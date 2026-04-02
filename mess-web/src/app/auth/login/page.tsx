@@ -62,7 +62,7 @@ export default function LoginPage() {
 
       Cookies.set("accessToken", accessToken, {
         expires: 7,
-        secure: process.env.NODE_ENV === "production",
+        secure: true,
         sameSite: "strict",
       });
       localStorage.setItem("user", JSON.stringify(user));
@@ -241,7 +241,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => handleTabChange("student")}
-              className={`flex-1 rounded-lg py-3 text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
+              className={`flex-1 rounded-lg py-3 text-sm font-bold hover:cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 ${
                 activeTab === "student"
                   ? "bg-white text-blue-700 shadow-sm border border-gray-200/50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
@@ -253,7 +253,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => handleTabChange("admin")}
-              className={`flex-1 rounded-lg py-3 text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
+              className={`flex-1 rounded-lg py-3 text-sm hover:cursor-pointer font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
                 activeTab === "admin"
                   ? "bg-white text-blue-700 shadow-sm border border-gray-200/50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
@@ -321,27 +321,28 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:cursor-pointer hover:text-gray-600 transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
 
+              {activeTab === 'student' && (
               <div className="flex justify-end px-1">
                 <button
                   type="button"
                   onClick={() => setShowForgotModal(true)}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline transition-all"
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:cursor-pointer hover:underline transition-all"
                 >
                   Forgot password?
                 </button>
-              </div>
+              </div>)}
             </div>
 
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-base hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 group"
+              className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-base hover:cursor-pointer  hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 group"
             >
               {loading ? (
                 <>
@@ -375,7 +376,7 @@ export default function LoginPage() {
             <div className="p-6 flex justify-between items-center border-b border-gray-50">
               <div className="flex items-center gap-2">
                 {forgotStep === 2 && (
-                  <button onClick={() => setForgotStep(1)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-400">
+                  <button onClick={() => setForgotStep(1)} className="p-1 hover:bg-gray-100 hover:cursor-pointer rounded-lg text-gray-400">
                     <ChevronLeft size={20} />
                   </button>
                 )}
@@ -383,7 +384,7 @@ export default function LoginPage() {
                   {forgotStep === 1 ? "Reset Password" : "New Password"}
                 </h3>
               </div>
-              <button onClick={closeForgotModal} className="p-2 hover:bg-gray-100 rounded-full">
+              <button onClick={closeForgotModal} className="p-2 hover:bg-gray-100 hover:cursor-pointer rounded-full">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
@@ -396,7 +397,7 @@ export default function LoginPage() {
               </p>
 
               {forgotError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-3">
+                <div className="bg-red-50 border border-red-200  text-red-700 px-4 py-3 rounded-xl flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <span className="text-sm font-medium">{forgotError}</span>
                 </div>
@@ -447,7 +448,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={forgotLoading}
-                className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-70"
+                className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-4 hover:cursor-pointer rounded-xl font-bold flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg disabled:cursor-not-allowed shadow-blue-600/20 disabled:opacity-70"
               >
                 {forgotLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

@@ -91,6 +91,10 @@ const userSchema = new mongoose.Schema({
         select: false
     },
 
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
     verification: {
         emailToken: {
             type: String,

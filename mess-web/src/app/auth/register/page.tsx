@@ -9,7 +9,6 @@ import Toast from "@/components/student/Toast";
 import API from "@/lib/api";
 import GoogleButton from "@/components/auth/GoogleButton";
 
-// --- REUSABLE INPUT COMPONENT ---
 const InputGroup = ({ icon: Icon, type, name, label, value, onChange, showEye, onEyeClick, eyeState }: any) => (
   <div className="relative group">
     <Icon className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-blue-500 pointer-events-none" />
