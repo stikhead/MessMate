@@ -138,7 +138,8 @@ userSchema.methods.generateAccessToken = async function () {
         email: this.email,
         userID: this.userID,
         fullName: this.fullName,
-        role: this.role
+        role: this.role,
+        isVerified: this.isVerified
     },
         process.env.ACCESS_TOKEN_SECRET,
         {
@@ -149,7 +150,8 @@ userSchema.methods.generateAccessToken = async function () {
 
 userSchema.methods.generateRefreshToken = async function () {
     return jwt.sign({
-        _id: this._id
+        _id: this._id,
+        isVerified: this.isVerified
     },
         process.env.REFRESH_TOKEN_SECRET,
         {

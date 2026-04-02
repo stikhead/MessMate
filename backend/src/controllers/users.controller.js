@@ -5,7 +5,12 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { sendVerificationEmail } from "../services/email.service.js";
 import jwt from "jsonwebtoken";
 import axios from "axios";
-
+const cookieOptions = {
+    httpOnly: true,    
+    secure: true,   
+    sameSite: 'none',  
+    path: '/',       
+};
 const isOtpAvailableAndGenerateOtp = async (user) => {
     const currentTime = Date.now();
 
@@ -122,9 +127,11 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Failed to send verification email. Please try again.");
     }
 
+    const nUser = await User.findById(createdUser._id).select("-password -refreshToken -verification");
+
     return res.status(201).json(
         new ApiResponse(201, {
-            user: createdUser,
+            user: nUser,
             nextOtpAvailableAt: nextAvailable
         }, "User registered successfully. Please verify your email.")
     );
@@ -163,16 +170,10 @@ const verifyUser = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .cookie(
-            'accessToken', `${accessToken}`, {
-            httpOnly: true,
-            secure: true
-        }
+            'accessToken', `${accessToken}`, cookieOptions
         )
         .cookie(
-            'refreshToken', `${refreshToken}`, {
-            httpOnly: true,
-            secure: true
-        }
+            'refreshToken', `${refreshToken}`, cookieOptions
         )
         .json(
             new ApiResponse(
@@ -217,22 +218,16 @@ const loginUser = asyncHandler(async (req, res) => {
     const { refreshToken, accessToken } = await generateAccessAndRefreshToken(user?._id);
 
     const updatedUser = await User.findById(user?._id).select(
-        "-password -refreshToken"
+        "-password -refreshToken -verification"
     )
 
     return res
         .status(200)
         .cookie(
-            'accessToken', `${accessToken}`, {
-            httpOnly: true,
-            secure: true
-        }
+            'accessToken', `${accessToken}`, cookieOptions
         )
         .cookie(
-            'refreshToken', `${refreshToken}`, {
-            httpOnly: true,
-            secure: true
-        }
+            'refreshToken', `${refreshToken}`, cookieOptions
         )
         .json(
             new ApiResponse(200, {
@@ -262,15 +257,9 @@ const logoutUser = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .clearCookie(
-            'accessToken', {
-            httpOnly: true,
-            secure: true
-        })
+            'accessToken', cookieOptions)
         .clearCookie(
-            'refreshToken', {
-            httpOnly: true,
-            secure: true
-        })
+            'refreshToken', cookieOptions)
         .json(
             new ApiResponse(200, {}, "logged out")
         )
@@ -318,16 +307,10 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .cookie(
-            'accessToken', `${accessToken}`, {
-            httpOnly: true,
-            secure: true
-        }
+            'accessToken', `${accessToken}`, cookieOptions
         )
         .cookie(
-            'refreshToken', `${refreshToken}`, {
-            httpOnly: true,
-            secure: true
-        }
+            'refreshToken', `${refreshToken}`, cookieOptions
         )
         .json(
             new ApiResponse(200, {
@@ -369,16 +352,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         return res
             .status(200)
             .cookie(
-                'accessToken', `${accessToken}`, {
-                httpOnly: true,
-                secure: true
-            }
+                'accessToken', `${accessToken}`,cookieOptions
             )
             .cookie(
-                'refreshToken', `${newRefreshToken}`, {
-                httpOnly: true,
-                secure: true
-            }
+                'refreshToken', `${newRefreshToken}`, cookieOptions
             )
             .json(
                 new ApiResponse(
@@ -434,23 +411,29 @@ const googleAuth = asyncHandler(async (req, res) => {
 
     if (user) {
         const { refreshToken, accessToken } = await generateAccessAndRefreshToken(user._id);
+        if (!user.isVerified) {
+            user.isVerified = true;
+        }
+
+        if (user.verification) {
+            user.verification.passwordToken = undefined;
+            user.verification.passwordExpiry = undefined;
+            user.verification.emailToken = undefined;
+            user.verification.emailExpiry = undefined;
+            user.verification.nextOtpAvailableAt = undefined;
+        }
+
         return res
-        .cookie(
-            'accessToken', `${accessToken}`, {
-            httpOnly: true,
-            secure: true
-        }
-        )
-        .cookie(
-            'refreshToken', `${refreshToken}`, {
-            httpOnly: true,
-            secure: true
-        }
-        )
-        .status(200)
-        .json(new ApiResponse(200, {
-            user, accessToken, refreshToken, isNewUser: false
-        }, "Login successful"));
+            .cookie(
+                'accessToken', `${accessToken}`, cookieOptions
+            )
+            .cookie(
+                'refreshToken', `${refreshToken}`, cookieOptions
+            )
+            .status(200)
+            .json(new ApiResponse(200, {
+                user, accessToken, refreshToken, isNewUser: false
+            }, "Login successful"));
     }
 
     const onboardingToken = jwt.sign({ email, name }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '15m' });
@@ -511,20 +494,14 @@ const googleFinalize = asyncHandler(async (req, res) => {
 
     const { refreshToken, accessToken } = await generateAccessAndRefreshToken(user._id);
 
- 
+
     return res
         .status(201)
         .cookie(
-            'accessToken', `${accessToken}`, {
-            httpOnly: true,
-            secure: true
-        }
+            'accessToken', `${accessToken}`, cookieOptions
         )
         .cookie(
-            'refreshToken', `${refreshToken}`, {
-            httpOnly: true,
-            secure: true
-        }
+            'refreshToken', `${refreshToken}`, cookieOptions
         )
         .json(new ApiResponse(201, {
             user,
@@ -593,12 +570,12 @@ const verifyForgetPasswordOtpAndResetPassword = asyncHandler(async (req, res) =>
     const now = Date.now();
     let isOtpValid = false;
     if (user.isVerified) {
-        isOtpValid = 
-            user.verification?.passwordToken === otp && 
+        isOtpValid =
+            user.verification?.passwordToken === otp &&
             user.verification?.passwordExpiry > now;
     } else {
-        isOtpValid = 
-            user.verification?.emailToken === otp && 
+        isOtpValid =
+            user.verification?.emailToken === otp &&
             user.verification?.emailExpiry > now;
     }
 
