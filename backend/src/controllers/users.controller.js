@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendVerificationEmail } from "../services/email.service.js";
 import jwt from "jsonwebtoken";
+import axios from "axios";
 
 const isOtpAvailableAndGenerateOtp = async (user) => {
     const currentTime = Date.now();
@@ -130,16 +131,17 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 const verifyUser = asyncHandler(async (req, res) => {
-    const { email, otp } = req.body;
+    const { email, code } = req.body;
 
     const normalizedEmail = email?.toLowerCase().trim();
 
-    if (!normalizedEmail || !otp) {
+    if (!normalizedEmail || !code) {
         throw new ApiError(400, "Email and OTP are required");
     }
+
     const user = await User.findOne({
         email: normalizedEmail,
-        "verification.emailToken": otp,
+        "verification.emailToken": code,
         "verification.emailExpiry": { $gt: Date.now() }
     });
 
@@ -151,8 +153,12 @@ const verifyUser = asyncHandler(async (req, res) => {
     user.verification = undefined;
 
     await user.save({ validateBeforeSave: false });
+
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+    const updatedUser = await User.findById(user?._id).select(
+        "-password -refreshToken"
+    )
 
     return res
         .status(200)
@@ -174,7 +180,7 @@ const verifyUser = asyncHandler(async (req, res) => {
                 {
                     accessToken,
                     refreshToken,
-                    user: loggedInUser
+                    user: updatedUser
                 },
                 "Account verified successfully"
             )
@@ -578,35 +584,42 @@ const verifyForgetPasswordOtpAndResetPassword = asyncHandler(async (req, res) =>
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const user = await User.findOne({
-        email: normalizedEmail
-    });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
         throw new ApiError(400, 'Invalid or expired OTP');
     }
 
-    let validOtp;
+    const now = Date.now();
+    let isOtpValid = false;
     if (user.isVerified) {
-        validOtp = user.verification?.passwordToken === otp && user.verification?.passwordExpiry > currentTime;
+        isOtpValid = 
+            user.verification?.passwordToken === otp && 
+            user.verification?.passwordExpiry > now;
     } else {
-        validOtp = user.verification?.emailToken === otp && user.verification?.emailExpiry > currentTime;
-
+        isOtpValid = 
+            user.verification?.emailToken === otp && 
+            user.verification?.emailExpiry > now;
     }
 
-    if (!validOtp) {
+    if (!isOtpValid) {
         throw new ApiError(400, 'Invalid or expired OTP');
     }
 
+    user.password = newPassword;
 
     if (!user.isVerified) {
         user.isVerified = true;
     }
 
-    user.verification.passwordToken = undefined;
-    user.verification.passwordExpiry = undefined;
-    user.verification.emailToken = undefined;
-    user.verification.emailExpiry = undefined;
+    if (user.verification) {
+        user.verification.passwordToken = undefined;
+        user.verification.passwordExpiry = undefined;
+        user.verification.emailToken = undefined;
+        user.verification.emailExpiry = undefined;
+        user.verification.nextOtpAvailableAt = undefined;
+    }
+
     await user.save({ validateBeforeSave: true });
 
     return res.status(200).json(
