@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [formData, setFormData] = useState<LoginFormData>({
@@ -135,15 +136,35 @@ export default function LoginPage() {
   const handleOtpChange = (value: string, index: number) => {
     if (isNaN(Number(value))) return;
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = value.substring(value.length - 1);
     setOtp(newOtp);
-    if (value !== "" && index < 5) otpRefs.current[index + 1]?.focus();
+
+    if (value !== "" && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
   };
 
   const handleOtpKeyDown = (e: React.KeyboardEvent, index: number) => {
-    if (e.key === "Backspace" && otp[index] === "" && index > 0) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       otpRefs.current[index - 1]?.focus();
     }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").trim().slice(0, 6).split("");
+    const newOtp = [...otp];
+
+    pastedData.forEach((char, i) => {
+      if (!isNaN(Number(char))) {
+        newOtp[i] = char;
+      }
+    });
+
+    setOtp(newOtp);
+
+    const focusIndex = Math.min(pastedData.length, 5);
+    otpRefs.current[focusIndex]?.focus();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -419,9 +440,18 @@ export default function LoginPage() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <div className="flex gap-2 justify-center">
+                  <div className="flex gap-2 justify-center" onPaste={handleOtpPaste}>
                     {otp.map((digit, idx) => (
-                      <input key={idx} type="text" maxLength={1} value={digit} onChange={(e) => handleOtpChange(e.target.value, idx)} onKeyDown={(e) => handleOtpKeyDown(e, idx)} className="w-11 h-13 border-2 border-gray-200 rounded-xl text-center text-lg font-bold focus:border-blue-500 outline-none transition-all" />
+                      <input 
+                        key={idx} 
+                        type="text" 
+                        ref={(el) => { otpRefs.current[idx] = el; }}
+                        maxLength={1} 
+                        value={digit} 
+                        onChange={(e) => handleOtpChange(e.target.value, idx)} 
+                        onKeyDown={(e) => handleOtpKeyDown(e, idx)} 
+                        className="w-11 h-13 border-2 border-gray-200 rounded-xl text-center text-lg font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all shadow-sm" 
+                      />
                     ))}
                   </div>
 
@@ -432,7 +462,7 @@ export default function LoginPage() {
                       </div>
                       <input type={showNewPass ? "text" : "password"} required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New Password" className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100" />
                       <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-4 top-4 text-gray-400">
-                        {showNewPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                        {showNewPass ? <EyeOff size={18} className="h-5 w-5" /> : <Eye size={18} className="h-5 w-5" />}
                       </button>
                     </div>
                     <div className="relative group">
@@ -454,7 +484,7 @@ export default function LoginPage() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    {forgotStep === 1 ? "Send Reset Code" : "Update Password"} <ArrowRight size={18} />
+                    {forgotStep === 1 ? "Send Reset Code" : "Update Password"}  <ArrowRight size={18} className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                   </>
                 )}
               </button>
@@ -462,7 +492,6 @@ export default function LoginPage() {
           </div>
         </div>
       )}
-
       <button
         type="button"
         className="fixed bottom-6 right-6 p-3.5 bg-gray-900 text-white rounded-full shadow-xl hover:bg-black hover:scale-105 transition-all focus:ring-4 focus:ring-gray-300"
