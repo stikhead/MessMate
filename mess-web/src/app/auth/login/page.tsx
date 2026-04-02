@@ -5,7 +5,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import API from "@/lib/api";
-import { UtensilsCrossed, GraduationCap, ShieldCheck, User, Lock, HelpCircle, AlertCircle, Loader2, EyeOff, Eye, ArrowRight, Mail, X, ChevronLeft, Zap } from "lucide-react";
+import { UtensilsCrossed, GraduationCap, ShieldCheck, User, Lock, HelpCircle, AlertCircle, Loader2, EyeOff, Eye, ArrowRight, Mail, X, ChevronLeft } from "lucide-react";
 import { LoginResponse, LoginFormData } from "@/types/common";
 import GoogleButton from "@/components/auth/GoogleButton";
 import Cookies from "js-cookie";
@@ -94,8 +94,8 @@ export default function LoginPage() {
   const handleDemoLogin = (type: 'hostel' | 'day_scholar') => {
     setActiveTab("student");
     const credentials = {
-      hostel: { email: "hostel.student@cuh.ac.in", password: "password123" },
-      day_scholar: { email: "dayscholar.student@cuh.ac.in", password: "password123" }
+      hostel: { email: "hostel@hostel.com", password: "hostelstudent" },
+      day_scholar: { email: "dayscholar@day.com", password: "dayscholar" }
     };
 
     const { email, password } = credentials[type];
@@ -314,10 +314,7 @@ export default function LoginPage() {
                     onClick={() => handleDemoLogin('hostel')}
                     className="flex flex-col items-center justify-center p-3 border-2 border-blue-50 bg-blue-50/50 rounded-2xl hover:bg-blue-100 hover:border-blue-200 transition-all group active:scale-[0.98] hover:cursor-pointer disabled:opacity-50"
                   >
-                    <div className="h-9 w-9 bg-blue-600 rounded-full flex items-center justify-center text-white mb-2 shadow-md group-hover:scale-110 transition-transform">
-                      <Zap size={16} />
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-700">Hostel Demo</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-700">Hostel Student Demo</span>
                   </button>
 
                   <button
@@ -326,10 +323,8 @@ export default function LoginPage() {
                     onClick={() => handleDemoLogin('day_scholar')}
                     className="flex flex-col items-center justify-center p-3 border-2 border-indigo-50 bg-indigo-50/50 rounded-2xl hover:bg-indigo-100 hover:border-indigo-200 transition-all group active:scale-[0.98] hover:cursor-pointer disabled:opacity-50"
                   >
-                    <div className="h-9 w-9 bg-indigo-600 rounded-full flex items-center justify-center text-white mb-2 shadow-md group-hover:scale-110 transition-transform">
-                      <User size={16} />
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-700">Day Scholar</span>
+    
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-700">Day Scholar Demo</span>
                   </button>
                 </div>
 
