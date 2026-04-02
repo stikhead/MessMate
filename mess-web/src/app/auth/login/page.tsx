@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotStep, setForgotStep] = useState(1); 
+  const [forgotStep, setForgotStep] = useState(1);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotError, setForgotError] = useState("");
@@ -27,7 +27,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  
+
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [formData, setFormData] = useState<LoginFormData>({
@@ -187,7 +187,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-gray-50">
-      
+
       <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-blue-600 via-blue-700 to-indigo-900 text-white p-16 flex-col justify-between relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
@@ -241,7 +241,7 @@ export default function LoginPage() {
 
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative">
         <div className="w-full max-w-md">
-          
+
           <div className="lg:hidden mb-10 text-center">
             <div className="inline-flex items-center gap-3 mb-2">
               <div className="p-3 bg-linear-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-600/30">
@@ -262,11 +262,10 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => handleTabChange("student")}
-              className={`flex-1 rounded-lg py-3 text-sm font-bold hover:cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 ${
-                activeTab === "student"
+              className={`flex-1 rounded-lg py-3 text-sm font-bold hover:cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === "student"
                   ? "bg-white text-blue-700 shadow-sm border border-gray-200/50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-              }`}
+                }`}
             >
               <User className="w-4 h-4" />
               Student
@@ -274,11 +273,10 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => handleTabChange("admin")}
-              className={`flex-1 rounded-lg py-3 text-sm hover:cursor-pointer font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
-                activeTab === "admin"
+              className={`flex-1 rounded-lg py-3 text-sm hover:cursor-pointer font-bold transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === "admin"
                   ? "bg-white text-blue-700 shadow-sm border border-gray-200/50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-              }`}
+                }`}
             >
               <ShieldCheck className="w-4 h-4" />
               Administration
@@ -308,7 +306,7 @@ export default function LoginPage() {
                 placeholder={activeTab === "student" ? "Email Address" : "Admin Username"}
                 className="block w-full pl-12 pr-4 py-4 bg-white border border-gray-200 rounded-xl text-gray-900 text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all peer placeholder-transparent shadow-sm"
               />
-              <label 
+              <label
                 htmlFor="cardNumber"
                 className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white"
               >
@@ -332,13 +330,13 @@ export default function LoginPage() {
                   placeholder="Password"
                   className="block w-full pl-12 pr-12 py-4 bg-white border border-gray-200 rounded-xl text-gray-900 text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all peer placeholder-transparent shadow-sm"
                 />
-                <label 
+                <label
                   htmlFor="password"
                   className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white"
                 >
                   Password
                 </label>
-                
+
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -349,15 +347,15 @@ export default function LoginPage() {
               </div>
 
               {activeTab === 'student' && (
-              <div className="flex justify-end px-1">
-                <button
-                  type="button"
-                  onClick={() => setShowForgotModal(true)}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:cursor-pointer hover:underline transition-all"
-                >
-                  Forgot password?
-                </button>
-              </div>)}
+                <div className="flex justify-end px-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(true)}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:cursor-pointer hover:underline transition-all"
+                  >
+                    Forgot password?
+                  </button>
+                </div>)}
             </div>
 
             <button
@@ -387,7 +385,7 @@ export default function LoginPage() {
               </p>
             </div>
           )}
-          
+
         </div>
       </div>
 
@@ -409,10 +407,10 @@ export default function LoginPage() {
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
-            
+
             <form onSubmit={forgotStep === 1 ? handleSendOtp : handleFinalReset} className="p-8 space-y-6">
               <p className="text-gray-500 text-sm font-medium">
-                {forgotStep === 1 
+                {forgotStep === 1
                   ? "Enter your university email address to receive a 6-digit reset code."
                   : `Enter the code sent to ${forgotEmail} and set your new password.`}
               </p>
@@ -442,15 +440,15 @@ export default function LoginPage() {
                 <div className="space-y-6">
                   <div className="flex gap-2 justify-center" onPaste={handleOtpPaste}>
                     {otp.map((digit, idx) => (
-                      <input 
-                        key={idx} 
-                        type="text" 
+                      <input
+                        key={idx}
+                        type="text"
                         ref={(el) => { otpRefs.current[idx] = el; }}
-                        maxLength={1} 
-                        value={digit} 
-                        onChange={(e) => handleOtpChange(e.target.value, idx)} 
-                        onKeyDown={(e) => handleOtpKeyDown(e, idx)} 
-                        className="w-11 h-13 border-2 border-gray-200 rounded-xl text-center text-lg font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all shadow-sm" 
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(e.target.value, idx)}
+                        onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                        className="w-11 h-13 border-2 border-gray-200 rounded-xl text-center text-lg font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all shadow-sm"
                       />
                     ))}
                   </div>
@@ -461,9 +459,14 @@ export default function LoginPage() {
                         <Lock className="h-5 w-5" />
                       </div>
                       <input type={showNewPass ? "text" : "password"} required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New Password" className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100" />
-                      <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-4 top-4 text-gray-400">
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPass(!showNewPass)}
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:cursor-pointer hover:text-gray-600 transition-colors"
+                      >
                         {showNewPass ? <EyeOff size={18} className="h-5 w-5" /> : <Eye size={18} className="h-5 w-5" />}
                       </button>
+
                     </div>
                     <div className="relative group">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500">
@@ -478,7 +481,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={forgotLoading}
-                className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-4 hover:cursor-pointer rounded-xl font-bold flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg disabled:cursor-not-allowed shadow-blue-600/20 disabled:opacity-70"
+                className="w-full bg-linear-to-r  from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-base hover:cursor-pointer  hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 group"
               >
                 {forgotLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

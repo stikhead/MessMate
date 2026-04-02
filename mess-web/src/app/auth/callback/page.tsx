@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/auth/callback/page.tsx
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -29,6 +29,7 @@ function CallbackContent() {
       setToast({ message: "Welcome to MessMate!", type: "success" });
       setTimeout(() => router.push("/dashboard"), 1500);
     } catch (err: any) {
+      console.log(err)
       setToast({ message: "Profile update failed", type: "error" });
     } finally {
       setLoading(false);

@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import API from "@/lib/api";
@@ -12,16 +11,40 @@ function VerifyContent() {
   const email = searchParams.get("email");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleChange = (val: string, index: number) => {
     if (isNaN(Number(val))) return;
     const newOtp = [...otp];
-    newOtp[index] = val;
+    
+    newOtp[index] = val.substring(val.length - 1);
     setOtp(newOtp);
-    if (val && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      nextInput?.focus();
+
+    if (val !== "" && index < 5) {
+      otpRefs.current[index + 1]?.focus();
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").trim().slice(0, 6).split("");
+    const newOtp = [...otp];
+
+    pastedData.forEach((char, i) => {
+      if (!isNaN(Number(char))) {
+        newOtp[i] = char;
+      }
+    });
+
+    setOtp(newOtp);
+    const focusIndex = Math.min(pastedData.length, 5);
+    otpRefs.current[focusIndex]?.focus();
   };
 
   const handleVerify = async () => {
@@ -30,6 +53,7 @@ function VerifyContent() {
       await API.post("/users/verify-email", { email, code: otp.join("") });
       router.push("/auth/login?verified=true");
     } catch (err) {
+      console.log(err)
       alert("Invalid OTP. Please try again.");
     } finally {
       setLoading(false);
@@ -39,23 +63,24 @@ function VerifyContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-xl text-center border border-gray-100">
-        <ShieldCheck className="h-16 w-16 text-blue-600 mx-auto mb-6" />
+        < ShieldCheck className="h-16 w-16 text-blue-600 mx-auto mb-6" />
         <h2 className="text-2xl font-bold text-gray-900">Verify Your Email</h2>
         <p className="text-gray-500 text-sm mt-2 mb-10">
           We sent a 6-digit code to <br/>
           <b className="text-gray-800">{email || "your email"}</b>
         </p>
         
-        <div className="flex gap-2 justify-center mb-10">
+        <div className="flex gap-2 justify-center mb-10" onPaste={handlePaste}>
           {otp.map((digit, idx) => (
             <input 
               key={idx} 
-              id={`otp-${idx}`} 
+              ref={(el) => { otpRefs.current[idx] = el; }}
               type="text" 
               maxLength={1} 
               value={digit} 
               onChange={e => handleChange(e.target.value, idx)} 
-              className="w-12 h-14 border-2 border-gray-100 rounded-xl text-center text-xl font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all" 
+              onKeyDown={e => handleKeyDown(e, idx)}
+              className="w-12 h-14 border-2 border-gray-100 rounded-xl text-center text-xl font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all shadow-sm" 
             />
           ))}
         </div>
@@ -63,9 +88,15 @@ function VerifyContent() {
         <button 
           onClick={handleVerify} 
           disabled={loading || otp.includes("")} 
-          className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+          className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 active:scale-[0.98]"
         >
-          {loading ? <Loader2 className="animate-spin" /> : "Verify Account"}
+          {loading ? (
+            <>
+              <Loader2 className="animate-spin h-5 w-5" /> Verifying...
+            </>
+          ) : (
+            "Verify Account"
+          )}
         </button>
       </div>
     </div>
