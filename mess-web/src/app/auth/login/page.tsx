@@ -66,6 +66,21 @@ export default function LoginPage() {
       const res = await API.post<LoginResponse>("/users/login", payload);
       const { accessToken, user } = res.data.data;
 
+      if (activeTab === "student" && !user.isVerified) {
+        setToast({ message: "Account not verified. Sending OTP...", type: "success" });
+
+        try {
+          await API.post("/users/send-otp", { email: user.email });
+          router.push(`/auth/verify?email=${user.email}`);
+          return; 
+        } catch (otpErr) {
+          console.log(otpErr)
+          setError("Failed to send verification code. Please try again.");
+          setLoading(false);
+          return;
+        }
+      }
+      
       Cookies.set("accessToken", accessToken, {
         expires: 7,
         secure: true,
@@ -99,7 +114,7 @@ export default function LoginPage() {
     };
 
     const { email, password } = credentials[type];
-    
+
     setFormData({ cardNumber: email, password: password });
 
     handleSubmit(undefined, email, password);
@@ -282,8 +297,8 @@ export default function LoginPage() {
               type="button"
               onClick={() => handleTabChange("student")}
               className={`flex-1 rounded-lg py-3 text-sm font-bold hover:cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === "student"
-                  ? "bg-white text-blue-700 shadow-sm border border-gray-200/50"
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                ? "bg-white text-blue-700 shadow-sm border border-gray-200/50"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
                 }`}
             >
               <User className="w-4 h-4" />
@@ -293,8 +308,8 @@ export default function LoginPage() {
               type="button"
               onClick={() => handleTabChange("admin")}
               className={`flex-1 rounded-lg py-3 text-sm hover:cursor-pointer font-bold transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === "admin"
-                  ? "bg-white text-blue-700 shadow-sm border border-gray-200/50"
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                ? "bg-white text-blue-700 shadow-sm border border-gray-200/50"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
                 }`}
             >
               <ShieldCheck className="w-4 h-4" />
@@ -323,7 +338,7 @@ export default function LoginPage() {
                     onClick={() => handleDemoLogin('day_scholar')}
                     className="flex flex-col items-center justify-center p-3 border-2 border-indigo-50 bg-indigo-50/50 rounded-2xl hover:bg-indigo-100 hover:border-indigo-200 transition-all group active:scale-[0.98] hover:cursor-pointer disabled:opacity-50"
                   >
-    
+
                     <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-700">Day Scholar Demo</span>
                   </button>
                 </div>
@@ -513,8 +528,8 @@ export default function LoginPage() {
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500">
                         <Lock className="h-5 w-5" />
                       </div>
-                      <input type={showNewPass ? "text" : "password"} required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New Password" 
-                      className="block w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all shadow-sm" />
+                      <input type={showNewPass ? "text" : "password"} required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New Password"
+                        className="block w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all shadow-sm" />
                       <button
                         type="button"
                         onClick={() => setShowNewPass(!showNewPass)}
@@ -528,8 +543,8 @@ export default function LoginPage() {
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500">
                         <Lock className="h-5 w-5" />
                       </div>
-                      <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm Password" 
-                      className="block w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all shadow-sm" />
+                      <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm Password"
+                        className="block w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all shadow-sm" />
                     </div>
                   </div>
                 </div>
