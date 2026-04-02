@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { User, Hash, Phone, Loader2, ArrowRight, ShieldCheck, UtensilsCrossed } from "lucide-react";
 import API from "@/lib/api";
 import Toast from "@/components/student/Toast";
-
+import Cookies from 'js-cookie';
 const InputGroup = ({ icon: Icon, type, name, label, value, onChange }: any) => (
   <div className="relative group">
     <Icon className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-blue-500 pointer-events-none transition-colors" />
@@ -50,8 +50,13 @@ function CallbackContent() {
           setIsNewUser(true);
           setLoading(false);
         } else {
-          const { user } = res.data.data;
-        
+         const { accessToken, user } = res.data.data;
+
+      Cookies.set("accessToken", accessToken, {
+        expires: 7,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
 
          
           localStorage.setItem("user", JSON.stringify(user));

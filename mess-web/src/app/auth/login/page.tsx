@@ -8,7 +8,7 @@ import API from "@/lib/api";
 import { UtensilsCrossed, GraduationCap, ShieldCheck, User, Lock, HelpCircle, AlertCircle, Loader2, EyeOff, Eye, ArrowRight, Mail, X, ChevronLeft } from "lucide-react";
 import { LoginResponse, LoginFormData } from "@/types/common";
 import GoogleButton from "@/components/auth/GoogleButton";
-
+import Cookies from "js-cookie";
 type UserRole = "student" | "admin";
 
 export default function LoginPage() {
@@ -59,8 +59,13 @@ export default function LoginPage() {
           : { role: "admin", email: formData.cardNumber, password: formData.password };
 
       const res = await API.post<LoginResponse>("/users/login", payload);
-      const { user } = res.data.data;
+      const { accessToken, user } = res.data.data;
 
+      Cookies.set("accessToken", accessToken, {
+        expires: 7,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
       localStorage.setItem("user", JSON.stringify(user));
 
       if (activeTab === "admin") {

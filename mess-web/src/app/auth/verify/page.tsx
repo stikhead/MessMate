@@ -1,16 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, Suspense, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { ShieldCheck, Loader2, ArrowRight } from "lucide-react";
 import API from "@/lib/api";
+import Cookies from "js-cookie";
+import Toast from "@/components/student/Toast"; 
 
 function VerifyContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const email = searchParams.get("email");
+  
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -57,11 +62,34 @@ function VerifyContent() {
   const handleVerify = async () => {
     setLoading(true);
     try {
-      await API.post("/users/verify", { email, code: otp.join("") });
-      router.push("/auth/login?verified=true");
-    } catch (err) {
-      console.log(err)
-      alert("Invalid OTP. Please try again.");
+      const res = await API.post("/users/verify", { 
+        email, 
+        otp: otp.join("") 
+      });
+
+      const { accessToken, user } = res.data.data;
+
+      Cookies.set("accessToken", accessToken, {
+        expires: 7,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
+
+
+      localStorage.setItem("user", JSON.stringify(user));
+
+      setToast({ message: "Account verified! Welcome aboard.", type: "success" });
+
+      setTimeout(() => {
+        router.replace("/student/dashboard");
+      }, 1000);
+
+    } catch (err: any) {
+      console.error("Verification failed:", err);
+      setToast({ 
+        message: err.response?.data?.message || "Invalid OTP. Please try again.", 
+        type: "error" 
+      });
     } finally {
       setLoading(false);
     }
@@ -69,20 +97,26 @@ function VerifyContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-xl text-center border border-gray-100">
-        <ShieldCheck className="h-16 w-16 text-blue-600 mx-auto mb-6" />
-        <h2 className="text-2xl font-bold text-gray-900">Verify Your Email</h2>
-        <p className="text-gray-500 text-sm mt-2 mb-10">
-          We sent a 6-digit code to <br/>
-          <b className="text-gray-800">{email}</b>
+      <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-2xl text-center border border-gray-100 animate-in fade-in zoom-in-95 duration-300">
+        
+        <div className="relative mb-6 inline-block">
+            <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full animate-pulse" />
+            <ShieldCheck className="h-16 w-16 text-blue-600 relative z-10" />
+        </div>
+
+        <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Verify Your Email</h2>
+        <p className="text-gray-500 text-sm font-medium mt-3 mb-10 leading-relaxed">
+          We sent a 6-digit verification code to <br/>
+          <span className="text-blue-600 font-bold">{email}</span>
         </p>
         
-        <div className="flex gap-2 justify-center mb-10" onPaste={handlePaste}>
+        <div className="flex gap-2 sm:gap-3 justify-center mb-10" onPaste={handlePaste}>
           {otp.map((digit, idx) => (
             <input 
               key={idx} 
               ref={(el) => { otpRefs.current[idx] = el; }}
               type="text" 
+              inputMode="numeric"
               maxLength={1} 
               value={digit} 
               onChange={e => handleChange(e.target.value, idx)} 
@@ -95,17 +129,25 @@ function VerifyContent() {
         <button 
           onClick={handleVerify} 
           disabled={loading || otp.includes("")} 
-          className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 active:scale-[0.98]"
+          className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-base hover:cursor-pointer hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group"
         >
           {loading ? (
             <>
               <Loader2 className="animate-spin h-5 w-5" /> Verifying...
             </>
           ) : (
-            "Verify Account"
+            <>
+              Verify Account <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+            </>
           )}
         </button>
+
+        <p className="mt-8 text-gray-400 text-[10px] font-bold uppercase tracking-widest">
+            Secured by MessMate Auth
+        </p>
       </div>
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }
