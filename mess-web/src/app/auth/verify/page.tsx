@@ -57,7 +57,7 @@ function VerifyContent() {
   const handleVerify = async () => {
     setLoading(true);
     try {
-      await API.post("/users/verify-email", { email, code: otp.join("") });
+      await API.post("/users/verify", { email, code: otp.join("") });
       router.push("/auth/login?verified=true");
     } catch (err) {
       console.log(err)

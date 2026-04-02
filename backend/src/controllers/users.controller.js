@@ -3,6 +3,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendVerificationEmail } from "../services/email.service.js";
+import jwt from "jsonwebtoken";
 
 const isOtpAvailableAndGenerateOtp = async (user) => {
     const currentTime = Date.now();
@@ -155,6 +156,18 @@ const verifyUser = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
+        .cookie(
+            'accessToken', `${accessToken}`, {
+            httpOnly: true,
+            secure: true
+        }
+        )
+        .cookie(
+            'refreshToken', `${refreshToken}`, {
+            httpOnly: true,
+            secure: true
+        }
+        )
         .json(
             new ApiResponse(
                 200,
@@ -300,14 +313,12 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         .status(200)
         .cookie(
             'accessToken', `${accessToken}`, {
-            expires: new Date(Date.now() + 24 * 3600000),
             httpOnly: true,
             secure: true
         }
         )
         .cookie(
             'refreshToken', `${refreshToken}`, {
-            expires: new Date(Date.now() + 24 * 3600000),
             httpOnly: true,
             secure: true
         }
@@ -321,7 +332,6 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         )
 })
 
-import jwt from "jsonwebtoken";
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
     const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
@@ -336,32 +346,38 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             process.env.REFRESH_TOKEN_SECRET
         );
 
-                const user = await User.findById(decodedToken?._id);
+        const user = await User.findById(decodedToken?._id);
 
         if (!user) {
             throw new ApiError(401, "Invalid refresh token: User not found");
         }
 
-             if (incomingRefreshToken !== user?.refreshToken) {
+        if (incomingRefreshToken !== user?.refreshToken) {
             throw new ApiError(401, "Refresh token is expired or used");
         }
 
-        const options = {
-            httpOnly: true,
-            secure: true,
-            sameSite: "None", 
-        };
+
 
         const { accessToken, newRefreshToken } = await generateAccessAndRefreshToken(user._id);
 
         return res
             .status(200)
-            .cookie("accessToken", accessToken, { ...options, expires: new Date(Date.now() + 3600000) }) 
-            .cookie("refreshToken", newRefreshToken, { ...options, expires: new Date(Date.now() + 7 * 24 * 3600000) }) 
+            .cookie(
+                'accessToken', `${accessToken}`, {
+                httpOnly: true,
+                secure: true
+            }
+            )
+            .cookie(
+                'refreshToken', `${newRefreshToken}`, {
+                httpOnly: true,
+                secure: true
+            }
+            )
             .json(
                 new ApiResponse(
-                    200, 
-                    { accessToken, refreshToken: newRefreshToken }, 
+                    200,
+                    { accessToken, refreshToken: newRefreshToken },
                     "Access token refreshed"
                 )
             );
@@ -390,57 +406,29 @@ const getAllUsers = asyncHandler(async (req, res) => {
 
 })
 
-const googleLogin = asyncHandler(async (req, res) => {
-    const { code, fullName, phoneNumber, roll_no } = req.body;
+const googleAuth = asyncHandler(async (req, res) => {
+    const { code } = req.body;
 
-    if (!code || !fullName || !phoneNumber || !roll_no) {
-        throw new ApiError(
-            400, 'Google token is required'
-        )
-    }
+    if (!code) throw new ApiError(400, "Google code is required");
 
-    let googleUser;
-    try {
-        const { data: tokens } = await axios.post(`${process.env.GOOGLE_OAUTH_URI}`, {
-            client_id: process.env.GOOGLE_CLIENT_ID,
-            client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            code: code,
-            grant_type: 'authorization_code',
-            redirect_uri: process.env.GOOGLE_REDIRECT_URI
-        });
+    const { data: tokens } = await axios.post(process.env.GOOGLE_OAUTH_URI, {
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI
+    });
 
-        const { access_token } = tokens;
+    const response = await axios.get(process.env.GOOGLE_VERIFICATION_URI, {
+        headers: { Authorization: `Bearer ${tokens.access_token}` }
+    });
 
-        const response = await axios.get(`${process.env.GOOGLE_VERIFICATION_URI}`, {
-            headers: { Authorization: `Bearer ${access_token}` }
-        });
+    const { email, name } = response.data;
+    const user = await User.findOne({ email });
 
-        googleUser = response.data;
-
-    } catch (error) {
-        console.error(error.response?.data || error.message);
-        throw new ApiError(401, "Google authentication failed");
-    }
-
-    let user = await User.findOne({ email: googleUser.email });
-
-    if (!user) {
-        const generatedPassword = crypto.randomBytes(32).toString("hex");
-
-        user = await User.create({
-            email: googleUser.email,
-            fullName: fullName,
-            roll_no: roll_no,
-            phoneNumber: phoneNumber,
-            password: generatedPassword,
-            isVerified: true,
-            name: googleUser.name
-        });
-    }
-
-    const { refreshToken, accessToken } = await generateAccessAndRefreshToken(user);
-    return res
-        .status(200)
+    if (user) {
+        const { refreshToken, accessToken } = await generateAccessAndRefreshToken(user._id);
+        return res
         .cookie(
             'accessToken', `${accessToken}`, {
             httpOnly: true,
@@ -453,15 +441,91 @@ const googleLogin = asyncHandler(async (req, res) => {
             secure: true
         }
         )
-        .json(
-            new ApiResponse(200, {
-                user: user,
-                accessToken: accessToken,
-                refreshToken: refreshToken
-            },
-                "User logged in successfullty")
+        .status(200)
+        .json(new ApiResponse(200, {
+            user, accessToken, refreshToken, isNewUser: false
+        }, "Login successful"));
+    }
+
+    const onboardingToken = jwt.sign({ email, name }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '15m' });
+
+    return res
+        .status(202)
+        .json(new ApiResponse(202, {
+            onboardingToken,
+            isNewUser: true,
+            email
+        }, "User needs to finalize profile"));
+});
+
+
+
+const googleFinalize = asyncHandler(async (req, res) => {
+    const { onboardingToken, fullName, phoneNumber, roll_no } = req.body;
+
+    if (!onboardingToken || !fullName || !phoneNumber || !roll_no) {
+        throw new ApiError(400, "All profile details are required");
+    }
+
+    let decoded;
+    try {
+        decoded = jwt.verify(onboardingToken, process.env.ACCESS_TOKEN_SECRET);
+    } catch (error) {
+        throw new ApiError(401, "Invalid or expired onboarding token");
+    }
+
+    const existingUser = await User.findOne({
+        $or: [
+            { email: decoded.email },
+            { roll_no: roll_no.trim() },
+            { phoneNumber: phoneNumber.trim() }
+        ]
+    });
+
+    if (existingUser) {
+        if (existingUser.email === decoded.email) {
+            throw new ApiError(409, "User with this email already exists");
+        }
+        if (existingUser.roll_no === roll_no.trim()) {
+            throw new ApiError(409, "This Roll Number is already registered");
+        }
+        if (existingUser.phoneNumber === phoneNumber.trim()) {
+            throw new ApiError(409, "This Phone Number is already in use");
+        }
+    }
+
+    const user = await User.create({
+        email: decoded.email,
+        fullName: fullName.trim(),
+        roll_no: roll_no.trim(),
+        phoneNumber: phoneNumber.trim(),
+        password: crypto.randomBytes(32).toString("hex"),
+        isVerified: true
+    });
+
+    const { refreshToken, accessToken } = await generateAccessAndRefreshToken(user._id);
+
+ 
+    return res
+        .status(201)
+        .cookie(
+            'accessToken', `${accessToken}`, {
+            httpOnly: true,
+            secure: true
+        }
         )
-})
+        .cookie(
+            'refreshToken', `${refreshToken}`, {
+            httpOnly: true,
+            secure: true
+        }
+        )
+        .json(new ApiResponse(201, {
+            user,
+            accessToken,
+            refreshToken
+        }, "Account created successfully"));
+});
 
 const sendOtp = asyncHandler(async (req, res) => {
     const { email } = req.body;
@@ -550,4 +614,4 @@ const verifyForgetPasswordOtpAndResetPassword = asyncHandler(async (req, res) =>
     );
 });
 
-export { registerUser, loginUser, logoutUser, verifyUser, googleLogin, verifyForgetPasswordOtpAndResetPassword, sendOtp, getCurrentUser, changeCurrentPassword, refreshAccessToken, getAllUsers };
+export { registerUser, loginUser, logoutUser, verifyUser, googleAuth, googleFinalize, verifyForgetPasswordOtpAndResetPassword, sendOtp, getCurrentUser, changeCurrentPassword, refreshAccessToken, getAllUsers };

@@ -5,9 +5,9 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import API from "@/lib/api";
-import Cookies from "js-cookie";
 import { UtensilsCrossed, GraduationCap, ShieldCheck, User, Lock, HelpCircle, AlertCircle, Loader2, EyeOff, Eye, ArrowRight, Mail, X, ChevronLeft } from "lucide-react";
 import { LoginResponse, LoginFormData } from "@/types/common";
+import GoogleButton from "@/components/auth/GoogleButton";
 
 type UserRole = "student" | "admin";
 
@@ -59,13 +59,8 @@ export default function LoginPage() {
           : { role: "admin", email: formData.cardNumber, password: formData.password };
 
       const res = await API.post<LoginResponse>("/users/login", payload);
-      const { accessToken, user } = res.data.data;
+      const { user } = res.data.data;
 
-      Cookies.set("accessToken", accessToken, {
-        expires: 7,
-        secure: true,
-        sameSite: "strict",
-      });
       localStorage.setItem("user", JSON.stringify(user));
 
       if (activeTab === "admin") {
@@ -284,6 +279,20 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-5">
+            {activeTab === "student" && (
+              <>
+                <GoogleButton text="Sign in with Google" />
+                <div className="relative my-6 text-center">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-100"></div>
+                  </div>
+                  <span className="relative bg-white px-2 text-gray-400 text-[10px] font-bold uppercase tracking-widest">
+                    Or sign in with email
+                  </span>
+                </div>
+              </>
+            )}
+
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                 <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
@@ -416,7 +425,7 @@ export default function LoginPage() {
               </p>
 
               {forgotError && (
-                <div className="bg-red-50 border border-red-200  text-red-700 px-4 py-3 rounded-xl flex items-start gap-3">
+                <div className="bg-red-50 border border-red-200   text-red-700 px-4 py-3 rounded-xl flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <span className="text-sm font-medium">{forgotError}</span>
                 </div>
@@ -495,6 +504,7 @@ export default function LoginPage() {
           </div>
         </div>
       )}
+      
       <button
         type="button"
         className="fixed bottom-6 right-6 p-3.5 bg-gray-900 text-white rounded-full shadow-xl hover:bg-black hover:scale-105 transition-all focus:ring-4 focus:ring-gray-300"
