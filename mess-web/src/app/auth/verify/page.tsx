@@ -71,7 +71,7 @@ function VerifyContent() {
 
       Cookies.set("accessToken", accessToken, {
         expires: 7,
-        secure: process.env.NODE_ENV === "production",
+        secure: true,
         sameSite: "strict",
       });
 

@@ -23,7 +23,7 @@ const InputGroup = ({ icon: Icon, type, name, label, value, onChange, showEye, o
       className="block w-full pl-12 pr-10 py-4 bg-white border border-gray-200 rounded-xl text-gray-900 text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all peer placeholder-transparent shadow-sm"
       placeholder={label}
     />
-    <label className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white">
+    <label className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px]  pointer-events-none font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white">
       {label}
     </label>
     {showEye && (

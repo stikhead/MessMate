@@ -5,6 +5,8 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { sendVerificationEmail } from "../services/email.service.js";
 import jwt from "jsonwebtoken";
 import axios from "axios";
+import crypto from "crypto";
+
 const cookieOptions = {
     httpOnly: true,    
     secure: true,   

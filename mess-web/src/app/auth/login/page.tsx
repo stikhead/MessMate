@@ -5,10 +5,12 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import API from "@/lib/api";
-import { UtensilsCrossed, GraduationCap, ShieldCheck, User, Lock, HelpCircle, AlertCircle, Loader2, EyeOff, Eye, ArrowRight, Mail, X, ChevronLeft } from "lucide-react";
+import { UtensilsCrossed, GraduationCap, ShieldCheck, User, Lock, HelpCircle, AlertCircle, Loader2, EyeOff, Eye, ArrowRight, Mail, X, ChevronLeft, Zap } from "lucide-react";
 import { LoginResponse, LoginFormData } from "@/types/common";
 import GoogleButton from "@/components/auth/GoogleButton";
 import Cookies from "js-cookie";
+import Toast from "@/components/student/Toast";
+
 type UserRole = "student" | "admin";
 
 export default function LoginPage() {
@@ -17,6 +19,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotStep, setForgotStep] = useState(1);
@@ -35,18 +38,20 @@ export default function LoginPage() {
     password: "",
   });
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent, demoEmail?: string, demoPassword?: string) => {
     if (e) e.preventDefault();
     setLoading(true);
     setError("");
+    const emailToUse = demoEmail || formData.cardNumber;
+    const passwordToUse = demoPassword || formData.password;
 
-    if (!formData.cardNumber.trim()) {
+    if (!emailToUse.trim()) {
       setError(activeTab === "student" ? "Email is required" : "Username is required");
       setLoading(false);
       return;
     }
 
-    if (!formData.password.trim()) {
+    if (!passwordToUse.trim()) {
       setError("Password is required");
       setLoading(false);
       return;
@@ -55,15 +60,15 @@ export default function LoginPage() {
     try {
       const payload =
         activeTab === "student"
-          ? { email: formData.cardNumber, password: formData.password }
-          : { role: "admin", email: formData.cardNumber, password: formData.password };
+          ? { email: emailToUse, password: passwordToUse }
+          : { role: "admin", email: emailToUse, password: passwordToUse };
 
       const res = await API.post<LoginResponse>("/users/login", payload);
       const { accessToken, user } = res.data.data;
 
       Cookies.set("accessToken", accessToken, {
         expires: 7,
-        secure: process.env.NODE_ENV === "production",
+        secure: true,
         sameSite: "strict",
       });
       localStorage.setItem("user", JSON.stringify(user));
@@ -84,6 +89,20 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDemoLogin = (type: 'hostel' | 'day_scholar') => {
+    setActiveTab("student");
+    const credentials = {
+      hostel: { email: "hostel.student@cuh.ac.in", password: "password123" },
+      day_scholar: { email: "dayscholar.student@cuh.ac.in", password: "password123" }
+    };
+
+    const { email, password } = credentials[type];
+    
+    setFormData({ cardNumber: email, password: password });
+
+    handleSubmit(undefined, email, password);
   };
 
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -287,6 +306,33 @@ export default function LoginPage() {
             {activeTab === "student" && (
               <>
                 <GoogleButton text="Sign in with Google" />
+
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleDemoLogin('hostel')}
+                    className="flex flex-col items-center justify-center p-3 border-2 border-blue-50 bg-blue-50/50 rounded-2xl hover:bg-blue-100 hover:border-blue-200 transition-all group active:scale-[0.98] hover:cursor-pointer disabled:opacity-50"
+                  >
+                    <div className="h-9 w-9 bg-blue-600 rounded-full flex items-center justify-center text-white mb-2 shadow-md group-hover:scale-110 transition-transform">
+                      <Zap size={16} />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-700">Hostel Demo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleDemoLogin('day_scholar')}
+                    className="flex flex-col items-center justify-center p-3 border-2 border-indigo-50 bg-indigo-50/50 rounded-2xl hover:bg-indigo-100 hover:border-indigo-200 transition-all group active:scale-[0.98] hover:cursor-pointer disabled:opacity-50"
+                  >
+                    <div className="h-9 w-9 bg-indigo-600 rounded-full flex items-center justify-center text-white mb-2 shadow-md group-hover:scale-110 transition-transform">
+                      <User size={16} />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-700">Day Scholar</span>
+                  </button>
+                </div>
+
                 <div className="relative my-6 text-center">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-100"></div>
@@ -299,7 +345,7 @@ export default function LoginPage() {
             )}
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-3 animate-in fade-in shadow-sm">
                 <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 <span className="text-sm font-medium">{error}</span>
               </div>
@@ -322,7 +368,7 @@ export default function LoginPage() {
               />
               <label
                 htmlFor="cardNumber"
-                className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white"
+                className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white pointer-events-none"
               >
                 {activeTab === "student" ? "Email Address" : "Admin Username"}
               </label>
@@ -346,7 +392,7 @@ export default function LoginPage() {
                 />
                 <label
                   htmlFor="password"
-                  className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white"
+                  className="absolute left-11 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wide transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white pointer-events-none"
                 >
                   Password
                 </label>
@@ -373,7 +419,7 @@ export default function LoginPage() {
             </div>
 
             <button
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               disabled={loading}
               className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-base hover:cursor-pointer  hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 group"
             >
@@ -430,7 +476,7 @@ export default function LoginPage() {
               </p>
 
               {forgotError && (
-                <div className="bg-red-50 border border-red-200   text-red-700 px-4 py-3 rounded-xl flex items-start gap-3">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <span className="text-sm font-medium">{forgotError}</span>
                 </div>
@@ -447,7 +493,7 @@ export default function LoginPage() {
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="University Email"
-                    className="block w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                    className="block w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all shadow-sm"
                   />
                 </div>
               ) : (
@@ -472,7 +518,8 @@ export default function LoginPage() {
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500">
                         <Lock className="h-5 w-5" />
                       </div>
-                      <input type={showNewPass ? "text" : "password"} required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New Password" className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100" />
+                      <input type={showNewPass ? "text" : "password"} required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New Password" 
+                      className="block w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all shadow-sm" />
                       <button
                         type="button"
                         onClick={() => setShowNewPass(!showNewPass)}
@@ -486,7 +533,8 @@ export default function LoginPage() {
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500">
                         <Lock className="h-5 w-5" />
                       </div>
-                      <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm Password" className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100" />
+                      <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm Password" 
+                      className="block w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all shadow-sm" />
                     </div>
                   </div>
                 </div>
@@ -495,13 +543,13 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={forgotLoading}
-                className="w-full bg-linear-to-r  from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-base hover:cursor-pointer  hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 group"
+                className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-base hover:cursor-pointer hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 group"
               >
                 {forgotLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    {forgotStep === 1 ? "Send Reset Code" : "Update Password"}  <ArrowRight size={18} className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                    {forgotStep === 1 ? "Send Reset Code" : "Update Password"} <ArrowRight size={18} className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                   </>
                 )}
               </button>
@@ -509,10 +557,12 @@ export default function LoginPage() {
           </div>
         </div>
       )}
-      
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
       <button
         type="button"
-        className="fixed bottom-6 right-6 p-3.5 bg-gray-900 text-white rounded-full shadow-xl hover:bg-black hover:scale-105 transition-all focus:ring-4 focus:ring-gray-300"
+        className="fixed bottom-6 right-6 p-3.5 bg-gray-900 text-white rounded-full shadow-xl hover:bg-black hover:scale-105 transition-all focus:ring-4 focus:ring-gray-300 hover:cursor-pointer"
         aria-label="Help"
         title="Need Help?"
       >
