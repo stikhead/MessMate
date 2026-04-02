@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, useRef } from "react";
+import { useState, Suspense, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import API from "@/lib/api";
@@ -13,10 +13,17 @@ function VerifyContent() {
   const [loading, setLoading] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  useEffect(() => {
+    if (!email) {
+      router.replace("/auth/register");
+    }
+  }, [email, router]);
+
+  if (!email) return null;
+
   const handleChange = (val: string, index: number) => {
     if (isNaN(Number(val))) return;
     const newOtp = [...otp];
-    
     newOtp[index] = val.substring(val.length - 1);
     setOtp(newOtp);
 
@@ -63,11 +70,11 @@ function VerifyContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-xl text-center border border-gray-100">
-        < ShieldCheck className="h-16 w-16 text-blue-600 mx-auto mb-6" />
+        <ShieldCheck className="h-16 w-16 text-blue-600 mx-auto mb-6" />
         <h2 className="text-2xl font-bold text-gray-900">Verify Your Email</h2>
         <p className="text-gray-500 text-sm mt-2 mb-10">
           We sent a 6-digit code to <br/>
-          <b className="text-gray-800">{email || "your email"}</b>
+          <b className="text-gray-800">{email}</b>
         </p>
         
         <div className="flex gap-2 justify-center mb-10" onPaste={handlePaste}>
